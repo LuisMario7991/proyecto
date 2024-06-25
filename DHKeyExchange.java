@@ -35,11 +35,16 @@ public class DHKeyExchange {
         }
 
         public void exchangeKeys(Socket socket) throws Exception {
-            // Enviar parámetros Diffie-Hellman a Alice
             OutputStream out = socket.getOutputStream();
             ObjectOutputStream oos = new ObjectOutputStream(out);
+            InputStream in = socket.getInputStream();
+            ObjectInputStream ois = new ObjectInputStream(in);
+            
+            // Enviar parámetros Diffie-Hellman a Alice
             oos.writeObject(dhSpec.getP());
+            oos.flush();
             oos.writeObject(dhSpec.getG());
+            oos.flush();
             oos.writeInt(dhSpec.getL());
             oos.flush();
             System.out.println("Parámetros Diffie-Hellman enviados a Alice.");
@@ -50,10 +55,7 @@ public class DHKeyExchange {
             System.out.println("Clave pública de Bob enviada a Alice.");
 
             // Recibir clave pública de Alice
-            InputStream in = socket.getInputStream();
-            ObjectInputStream ois = new ObjectInputStream(in);
             PublicKey alicePublicKey = (PublicKey) ois.readObject();
-            System.out.println("Clave pública de Alice recibida.");
             if (!validatePublicKey(alicePublicKey)) {
                 throw new IllegalArgumentException("Clave pública recibida es inválida");
             }
@@ -71,12 +73,11 @@ public class DHKeyExchange {
             byte[] first16Bytes = Arrays.copyOf(sharedSecretHash, 16);
             System.out.println("Clave compartida hash (Bob): " + bytesToHex(sharedSecretHash));
 
-            
-
             // Guarda el hash en un archivo TXT
             String fileName = "hasht.txt";
             Files.write(Paths.get(fileName), first16Bytes, StandardOpenOption.CREATE);
 
+            System.out.println("Intecambio de llaves DH terminado");
             //ois.close();
             //oos.close();
         }
