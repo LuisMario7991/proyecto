@@ -54,6 +54,10 @@ public class DHKeyExchange {
             ObjectInputStream ois = new ObjectInputStream(in);
             PublicKey alicePublicKey = (PublicKey) ois.readObject();
             System.out.println("Clave pública de Alice recibida.");
+            if (!validatePublicKey(alicePublicKey)) {
+                throw new IllegalArgumentException("Clave pública recibida es inválida");
+            }
+            System.out.println("Clave pública de Alice recibida y validada.");
 
             // Generar la clave compartida
             KeyAgreement keyAgree = KeyAgreement.getInstance("DH");
@@ -85,6 +89,12 @@ public class DHKeyExchange {
                 hexString.append(hex);
             }
             return hexString.toString();
+        }
+        
+        private boolean validatePublicKey(PublicKey key) {
+            // Implementación de ejemplo: validar la especificación de la clave y cualquier
+            // otra propiedad necesaria
+            return key.getAlgorithm().equals("DH") && key.getEncoded().length > 0;
         }
     }
 }
