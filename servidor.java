@@ -1,22 +1,39 @@
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import javafx.scene.layout.VBox;
-import javafx.scene.control.Button;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import java.sql.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.KeyFactory;
+import java.security.MessageDigest;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 
+import javax.crypto.Cipher;
 import javax.swing.JFileChooser;
 
 public class servidor {
+
+    private static Connection connect() throws SQLException {
+        String url = "jdbc:sqlserver://<tu_servidor>.database.windows.net:1433;database=<tu_base_de_datos>;user=<tu_usuario>;password=<tu_contraseña>;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;";
+        return DriverManager.getConnection(url);
+    }
 
     public static void main(String[] args) {
         LoginScreen.initialize(args); // Inicia con la pantalla de login
     }
 
     public static void showMainInterface(Stage primaryStage) {
-        setupUI(primaryStage); // Configura y muestra la UI principal
-        startServer(); // Inicia el servidor
+        try {
+            setupUI(primaryStage);
+            startServer();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private static void setupUI(Stage stage) {
@@ -89,10 +106,70 @@ public class servidor {
 
     private static void agregaUsuario() {
         System.out.println("Agregando usuario...");
+
+        // Crear una ventana para ingresar datos del usuario
+        Stage stage = new Stage();
+        GridPane grid = new GridPane();
+        TextField emailField = new TextField();
+        PasswordField passwordField = new PasswordField();
+        ComboBox<String> typeComboBox = new ComboBox<>();
+        typeComboBox.getItems().addAll("administrador", "colaborador");
+        Button addButton = new Button("Agregar");
+
+        grid.add(new Label("Email:"), 0, 0);
+        grid.add(emailField, 1, 0);
+        grid.add(new Label("Contraseña:"), 0, 1);
+        grid.add(passwordField, 1, 1);
+        grid.add(new Label("Tipo de Usuario:"), 0, 2);
+        grid.add(typeComboBox, 1, 2);
+        grid.add(addButton, 1, 3);
+
+        addButton.setOnAction(e -> {
+            try (Connection conn = connect();
+                    PreparedStatement stmt = conn.prepareStatement(
+                            "INSERT INTO Usuarios (Correo, Contrasena, TipoUsuario) VALUES (?, ?, ?)")) {
+                stmt.setString(1, emailField.getText());
+                stmt.setString(2, passwordField.getText());
+                stmt.setString(3, typeComboBox.getValue());
+                stmt.executeUpdate();
+                stage.close();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        Scene scene = new Scene(grid);
+        stage.setScene(scene);
+        stage.show();
     }
 
     private static void eliminaUsuario() {
         System.out.println("Eliminando usuario...");
+
+        // Crear una ventana para eliminar un usuario
+        Stage stage = new Stage();
+        GridPane grid = new GridPane();
+        TextField emailField = new TextField();
+        Button deleteButton = new Button("Eliminar");
+
+        grid.add(new Label("Email del usuario a eliminar:"), 0, 0);
+        grid.add(emailField, 1, 0);
+        grid.add(deleteButton, 1, 1);
+
+        deleteButton.setOnAction(e -> {
+            try (Connection conn = connect();
+                    PreparedStatement stmt = conn.prepareStatement("DELETE FROM Usuarios WHERE Correo = ?")) {
+                stmt.setString(1, emailField.getText());
+                stmt.executeUpdate();
+                stage.close();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        Scene scene = new Scene(grid);
+        stage.setScene(scene);
+        stage.show();
     }
 
     private static void startServer() {
@@ -100,35 +177,97 @@ public class servidor {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("Servidor listo\nBob está escuchando en el puerto " + PORT);
             while (true) {
-                Socket socket = serverSocket.accept();
-                System.out.println("Cliente conectado: " + socket.getInetAddress());
-                new ClientHandler(socket).start();
+                try {
+                    Socket socket = serverSocket.accept();
+                    System.out.println("Cliente conectado: " + socket.getInetAddress());
+                    // Crear un nuevo hilo para manejar la conexión con el cliente
+                    Thread clientThread = new Thread(new ClientHandler(socket));
+                    clientThread.start();
+                    DHKeyExchange.ServerDH dhKeyExchange;
+                    dhKeyExchange = new DHKeyExchange.ServerDH();
+                    dhKeyExchange.exchangeKeys(socket);
+                    break;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
             }
         } catch (IOException e) {
             System.err.println("Error al iniciar el servidor: " + e.getMessage());
         }
     }
 
-    static class ClientHandler extends Thread {
+    public static void recibirArchivo(Socket socket) {
+        try (DataInputStream dataInputStream = new DataInputStream(socket.getInputStream())) {
+            String fileName = dataInputStream.readUTF();
+            long fileSize = dataInputStream.readLong();
+            String saveFilePath = "recibido_" + fileName;
+
+            System.out.println("Recibiendo archivo: " + fileName + " de tamaño: " + fileSize + " bytes");
+
+            try (FileOutputStream fileOutputStream = new FileOutputStream(saveFilePath);
+                    BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream)) {
+
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                long totalBytesRead = 0;
+
+                while (totalBytesRead < fileSize && (bytesRead = dataInputStream.read(buffer)) != -1) {
+                    bufferedOutputStream.write(buffer, 0, bytesRead);
+                    totalBytesRead += bytesRead;
+                }
+
+                bufferedOutputStream.flush(); // Asegurar que todos los datos han sido escritos
+
+                if (totalBytesRead == fileSize) {
+                    System.out.println("Archivo recibido correctamente y guardado como " + saveFilePath);
+
+                } else {
+                    System.out.println("Error: El tamaño del archivo recibido (" + totalBytesRead
+                            + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static byte[] hashBytes(byte[] data) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        return digest.digest(data);
+    }
+
+    private static byte[] hashFile(String filePath) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] fileBytes = Files.readAllBytes(Paths.get(filePath));
+        return digest.digest(fileBytes);
+    }
+
+    private static PublicKey getPublicKeyFromFile(String filePath) throws Exception {
+        byte[] publicKeyBytes = Files.readAllBytes(Paths.get(filePath));
+        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        return keyFactory.generatePublic(keySpec);
+    }
+
+    private static byte[] decryptWithPublicKey(String filePath, PublicKey publicKey) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.DECRYPT_MODE, publicKey);
+
+        byte[] encryptedData = Files.readAllBytes(Paths.get(filePath));
+        return cipher.doFinal(encryptedData);
+    }
+
+    static class ClientHandler implements Runnable {
         private Socket clientSocket;
 
-        ClientHandler(Socket socket) {
+        public ClientHandler(Socket socket) {
             this.clientSocket = socket;
         }
 
         @Override
         public void run() {
-            try {
-                // Ejemplo de manejo de cliente
-                InputStream input = clientSocket.getInputStream();
-                OutputStream output = clientSocket.getOutputStream();
-                // Asumiendo algún tipo de protocolo de comunicación aquí
-                input.close();
-                output.close();
-                clientSocket.close();
-            } catch (IOException e) {
-                System.err.println("Error al manejar el cliente: " + e.getMessage());
-            }
+
         }
     }
 }
