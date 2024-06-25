@@ -6,6 +6,8 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import javax.swing.JFileChooser;
+
 public class servidor {
 
     public static void main(String[] args) {
@@ -25,16 +27,72 @@ public class servidor {
         Button agregarButton = new Button("Agregar usuario");
         Button eliminarButton = new Button("Eliminar usuario");
 
-        subirButton.setOnAction(e -> System.out.println("Subiendo archivo..."));
-        compartirButton.setOnAction(e -> System.out.println("Compartiendo archivo..."));
-        validarButton.setOnAction(e -> System.out.println("Validando archivo..."));
-        agregarButton.setOnAction(e -> System.out.println("Agregar usuario"));
-        eliminarButton.setOnAction(e -> System.out.println("Eliminar usuario"));
+        subirButton.setOnAction(e -> subirArchivo());
+        compartirButton.setOnAction(e -> compartirArchivo());
+        validarButton.setOnAction(e -> validarArchivo());
+        agregarButton.setOnAction(e -> agregaUsuario());
+        eliminarButton.setOnAction(e -> eliminaUsuario());
 
         VBox vbox = new VBox(10, subirButton, compartirButton, validarButton, agregarButton, eliminarButton);
         Scene scene = new Scene(vbox, 300, 200);
         stage.setScene(scene);
         stage.show();
+    }
+
+    private static void subirArchivo() {
+        System.out.println("Subiendo archivo...");
+
+        String connectStr = "DefaultEndpointsProtocol=https;AccountName=criptografia;AccountKey=ZqM6hU8KHAPBja0nWQ5YaiAC12vJqGv44R4HEytD5UwoLBpupGwQT2SAGVetp9kqPz04F+6M0WGW+ASt499lYQ==;EndpointSuffix=core.windows.net";
+        String containerName = "recetas";
+
+        // Crear un selector de archivos usando JFileChooser
+        JFileChooser fileChooser = new JFileChooser();
+        int returnValue = fileChooser.showOpenDialog(null);
+
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+
+            // Subir el archivo cifrado al contenedor en Azure Blob Storage
+
+            BlobUploader blobUploader = new BlobUploader(connectStr, containerName);
+            blobUploader.uploadEncryptedBlob(selectedFile);
+            System.out.println("Subiendo archivo...");
+        }
+    }
+
+    private static void compartirArchivo() {
+        // Lógica para compartir archivo
+        System.out.println("Compartiendo archivo...");
+        // Aquí se debería implementar la lógica para enviar el archivo al cliente
+        // mediante sockets
+        // Ejemplo básico:
+        // enviarArchivoAlCliente();
+    }
+
+    private static void validarArchivo() {
+        System.out.println("Validando archivo...");
+        // Aplicar hash SHA-256 al archivo 'm.txt'
+        // byte[] fileHash = hashFile("received_m.txt");
+        // PublicKey publicKey = getPublicKeyFromFile("receivedPublicKey.pem");
+
+        // byte[] decryptedHash = decryptWithPublicKey("received_encrypted_hash.bin",
+        // publicKey);
+
+        // Aplicar hash SHA-256 al resultado del descifrado
+        // byte[] decryptedHashFileHash = hashBytes(decryptedHash);
+
+        // Comparar los hashes
+        // boolean isMatch = MessageDigest.isEqual(fileHash, decryptedHashFileHash);
+        // System.out.println("Hash comparison result: " + (isMatch ? "MATCH" : "DO NOT
+        // MATCH"));;
+    }
+
+    private static void agregaUsuario() {
+        System.out.println("Agregando usuario...");
+    }
+
+    private static void eliminaUsuario() {
+        System.out.println("Eliminando usuario...");
     }
 
     private static void startServer() {
