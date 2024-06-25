@@ -12,6 +12,7 @@ import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import org.mindrot.jbcrypt.BCrypt;
 
 import javax.crypto.Cipher;
 import javax.swing.JFileChooser;
@@ -19,8 +20,8 @@ import javax.swing.JFileChooser;
 public class servidor {
 
     private static Connection connect() throws SQLException {
-        String url = "jdbc:sqlserver://<tu_servidor>.database.windows.net:1433;database=<tu_base_de_datos>;user=<tu_usuario>;password=<tu_contraseña>;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;";
-        return DriverManager.getConnection(url);
+        String url = "jdbc:mysql://chef-server.mysql.database.azure.com:3306/chef?useSSL=true";
+        return DriverManager.getConnection(url, "chefadmin", "ch3f4dm1n!");
     }
 
     public static void main(String[] args) {
@@ -125,13 +126,15 @@ public class servidor {
         grid.add(addButton, 1, 3);
 
         addButton.setOnAction(e -> {
+            String hashedPassword = BCrypt.hashpw(passwordField.getText(), BCrypt.gensalt());
             try (Connection conn = connect();
                     PreparedStatement stmt = conn.prepareStatement(
                             "INSERT INTO Usuarios (Correo, Contrasena, TipoUsuario) VALUES (?, ?, ?)")) {
                 stmt.setString(1, emailField.getText());
-                stmt.setString(2, passwordField.getText());
+                stmt.setString(2, hashedPassword); // Guardar la contraseña hasheada
                 stmt.setString(3, typeComboBox.getValue());
                 stmt.executeUpdate();
+                System.out.println("Usuario agregado exitosamente.");
                 stage.close();
             } catch (SQLException ex) {
                 ex.printStackTrace();
