@@ -9,7 +9,7 @@ import java.net.Socket;
 public class servidor {
 
     public static void main(String[] args) {
-        LoginScreen.main(args); // Inicia con la pantalla de login
+        LoginScreen.initialize(args); // Inicia con la pantalla de login
     }
 
     public static void showMainInterface(Stage primaryStage) {

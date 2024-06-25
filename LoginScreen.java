@@ -38,7 +38,7 @@ public class LoginScreen extends Application {
         primaryStage.show();
     }
 
-    public static void main(String[] args) {
+    public static void initialize(String[] args) {
         launch(args);
     }
 
