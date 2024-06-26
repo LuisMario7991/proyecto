@@ -34,7 +34,7 @@ public class LoginScreen extends Application {
 
         Scene scene = new Scene(grid, 300, 150);
         primaryStage.setScene(scene);
-        primaryStage.setTitle("Login");
+        primaryStage.setTitle("Server Login");
         primaryStage.show();
     }
 
