@@ -40,27 +40,23 @@ public class servidor {
     }
 
     public static void showMainInterface(Stage primaryStage) {
-        setupUI(primaryStage);
-    }
-
-    private static void setupUI(Stage stage) {
-        stage.setTitle("File Sharing App");
+        primaryStage.setTitle("File Sharing App");
         Button subirButton = new Button("Subir");
         Button compartirButton = new Button("Compartir");
         Button validarButton = new Button("Validar");
         Button agregarButton = new Button("Agregar usuario");
         Button eliminarButton = new Button("Eliminar usuario");
-
+    
         subirButton.setOnAction(e -> subirArchivo());
         compartirButton.setOnAction(e -> compartirArchivo());
         validarButton.setOnAction(e -> validarArchivo());
         agregarButton.setOnAction(e -> agregaUsuario());
         eliminarButton.setOnAction(e -> eliminaUsuario());
-
+    
         VBox vbox = new VBox(10, subirButton, compartirButton, validarButton, agregarButton, eliminarButton);
         Scene scene = new Scene(vbox, 300, 200);
-        stage.setScene(scene);
-        stage.show();
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
     private static void subirArchivo() {
