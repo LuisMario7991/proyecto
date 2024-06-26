@@ -1,7 +1,3 @@
-import javafx.scene.Scene;
-import javafx.stage.Stage;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
 import java.sql.*;
 import java.io.*;
 import java.net.ServerSocket;
@@ -152,6 +148,7 @@ public class servidor {
     }
 
     private static void waitForClient(ServerSocket server) throws InterruptedException {
+        System.out.println("Esperando nuevo cliente");
         while (true) {
             try {
                 Socket socket = server.accept();
@@ -163,9 +160,8 @@ public class servidor {
                 // Crear un nuevo hilo para manejar la conexión con el cliente
                 new Thread(new ClientHandler(socket)).start();
                 break;
-            } catch (Exception e) {
+            } catch (IOException e) {
                 Thread.sleep(1000);
-                System.err.println("Error en el intercambio de llaves: " + e.getMessage());
             }
         }
     }
@@ -232,6 +228,29 @@ public class servidor {
 
         byte[] encryptedData = Files.readAllBytes(Paths.get(filePath));
         return cipher.doFinal(encryptedData);
+    }
+
+    private static void cerrarConexion(Socket socketClient) {
+        try {
+            if (dataInputStream != null)
+                dataInputStream.close();
+
+            if (dataOutputStream != null)
+                dataOutputStream.close();
+
+            if (socketClient != null && !socketClient.isClosed())
+                socketClient.close();
+                
+            System.out.println("Conexión cerrada correctamente.");
+
+            waitForClient(serverSocket);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("No se pudo cerrar correctamente la conexión: " + e.getMessage());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            System.err.println("No se pudo esperar nuevo cliente: " + e.getMessage());
+        }
     }
 
     static class ClientHandler implements Runnable {
@@ -326,6 +345,9 @@ public class servidor {
                     break;
                 case "recibirArchivo":
                     recibirArchivo(this.clientSocket);
+                    break;
+                case "terminaConexion":
+                    cerrarConexion(this.clientSocket);
                     break;
                 default:
                     dataOutputStream.writeUTF("Comando desconocido");
