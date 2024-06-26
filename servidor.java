@@ -88,73 +88,57 @@ public class servidor {
     }
 
     private static void agregaUsuario() {
-        System.out.println("Agregando usuario...");
+        try {
+            System.out.println("Agregando usuario...");
 
-        // Crear una ventana para ingresar datos del usuario
-        Stage stage = new Stage();
-        GridPane grid = new GridPane();
-        TextField emailField = new TextField();
-        PasswordField passwordField = new PasswordField();
-        ComboBox<String> typeComboBox = new ComboBox<>();
-        typeComboBox.getItems().addAll("administrador", "colaborador");
-        Button addButton = new Button("Agregar");
+            // Lee los datos del nuevo usuario enviados por el cliente
+            String email = dataInputStream.readUTF();
+            String password = dataInputStream.readUTF();
+            String userType = dataInputStream.readUTF();
 
-        grid.add(new Label("Email:"), 0, 0);
-        grid.add(emailField, 1, 0);
-        grid.add(new Label("Contraseña:"), 0, 1);
-        grid.add(passwordField, 1, 1);
-        grid.add(new Label("Tipo de Usuario:"), 0, 2);
-        grid.add(typeComboBox, 1, 2);
-        grid.add(addButton, 1, 3);
+            // Hashea la contraseña
+            String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
-        addButton.setOnAction(e -> {
-            String hashedPassword = BCrypt.hashpw(passwordField.getText(), BCrypt.gensalt());
             try (Connection conn = connect();
                     PreparedStatement stmt = conn.prepareStatement(
                             "INSERT INTO Usuarios (Correo, Contrasena, TipoUsuario) VALUES (?, ?, ?)")) {
-                stmt.setString(1, emailField.getText());
-                stmt.setString(2, hashedPassword); // Guardar la contraseña hasheada
-                stmt.setString(3, typeComboBox.getValue());
+                stmt.setString(1, email);
+                stmt.setString(2, hashedPassword);
+                stmt.setString(3, userType);
                 stmt.executeUpdate();
-                System.out.println("Usuario agregado exitosamente.");
-                stage.close();
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
-        });
 
-        Scene scene = new Scene(grid);
-        stage.setScene(scene);
-        stage.show();
+                System.out.println("Usuario agregado exitosamente.");
+                dataOutputStream.writeUTF("Usuario agregado exitosamente");
+            } catch (SQLException ex) {
+                System.err.println("Error con la conexión de la base de datos: " + ex.getMessage());
+                dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
+            }
+        } catch (Exception e) {
+            System.err.println("Error con la recepción de parámetros del usuario: " + e.getMessage());
+        }
     }
 
     private static void eliminaUsuario() {
-        System.out.println("Eliminando usuario...");
+        try {
+            System.out.println("Eliminando usuario...");
 
-        // Crear una ventana para eliminar un usuario
-        Stage stage = new Stage();
-        GridPane grid = new GridPane();
-        TextField emailField = new TextField();
-        Button deleteButton = new Button("Eliminar");
+            // Lee los datos del nuevo usuario enviados por el cliente
+            String email = dataInputStream.readUTF();
 
-        grid.add(new Label("Email del usuario a eliminar:"), 0, 0);
-        grid.add(emailField, 1, 0);
-        grid.add(deleteButton, 1, 1);
-
-        deleteButton.setOnAction(e -> {
             try (Connection conn = connect();
                     PreparedStatement stmt = conn.prepareStatement("DELETE FROM Usuarios WHERE Correo = ?")) {
-                stmt.setString(1, emailField.getText());
+                stmt.setString(1, email);
                 stmt.executeUpdate();
-                stage.close();
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
-        });
 
-        Scene scene = new Scene(grid);
-        stage.setScene(scene);
-        stage.show();
+                System.out.println("Usuario eliminado exitosamente.");
+                dataOutputStream.writeUTF("Usuario eliminado exitosamente");
+            } catch (SQLException ex) {
+                System.err.println("Error con la conexión de la base de datos: " + ex.getMessage());
+                dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
+            }
+        } catch (Exception e) {
+            System.err.println("Error con la recepción de parámetros del usuario: " + e.getMessage());
+        }
     }
 
     private static void startServer() {
@@ -266,6 +250,7 @@ public class servidor {
                 // El servidor ahora espera por comandos
                 while (!clientSocket.isClosed()) {
                     try {
+                        System.out.println("Esperando intrucción del cliente");
                         String command = dataInputStream.readUTF();
                         processCommand(command);
                     } catch (IOException e) {
@@ -302,12 +287,14 @@ public class servidor {
                         String userType = rs.getString("TipoUsuario");
 
                         if (!BCrypt.checkpw(userPassword, storedPassword)) {
-                            dataOutputStream.writeUTF("INVALID"); // Enviar mensaje de error si la contraseña no coincide
+                            dataOutputStream.writeUTF("INVALID"); // Enviar mensaje de error si la contraseña no
+                                                                  // coincide
                             dataOutputStream.flush();
                             continue;
                         }
 
-                        dataOutputStream.writeUTF(userType); // Enviar tipo de usuario al cliente si la autenticación es exitosa
+                        dataOutputStream.writeUTF(userType); // Enviar tipo de usuario al cliente si la autenticación es
+                                                             // exitosa
                         dataOutputStream.flush();
                         break;
                     }
@@ -328,7 +315,12 @@ public class servidor {
                 case "validarArchivo":
                     validarArchivo();
                     break;
-                // Agrega más comandos según necesidad
+                case "agregaUsuario":
+                    agregaUsuario();
+                    break;
+                case "eliminaUsuario":
+                    eliminaUsuario();
+                    break;
                 default:
                     dataOutputStream.writeUTF("Comando desconocido");
                     break;
