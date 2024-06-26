@@ -20,10 +20,12 @@ import javax.swing.JFileChooser;
 
 public class servidor {
 
-    static ServerSocket socket;
+    static ServerSocket serverSocket;
+    private static DataInputStream dataInputStream;
+    private static DataOutputStream dataOutputStream;
 
     private static Connection connect() throws SQLException {
-        final Logger logger = LoggerFactory.getLogger(servidor.class);
+        // final Logger logger = LoggerFactory.getLogger(servidor.class);
         String url = "jdbc:mysql://chef-server.mysql.database.azure.com:3306/chef?useSSL=true";
         return DriverManager.getConnection(url, "chefadmin", "ch3f4dm1n!");
     }
@@ -31,32 +33,10 @@ public class servidor {
     public static void main(String[] args) {
         try {
             startServer();
-            waitForClient(socket);
-
-            LoginScreen.initialize(args); // Inicia con la pantalla de login
+            waitForClient(serverSocket);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-    }
-
-    public static void showMainInterface(Stage primaryStage) {
-        primaryStage.setTitle("File Sharing App");
-        Button subirButton = new Button("Subir");
-        Button compartirButton = new Button("Compartir");
-        Button validarButton = new Button("Validar");
-        Button agregarButton = new Button("Agregar usuario");
-        Button eliminarButton = new Button("Eliminar usuario");
-    
-        subirButton.setOnAction(e -> subirArchivo());
-        compartirButton.setOnAction(e -> compartirArchivo());
-        validarButton.setOnAction(e -> validarArchivo());
-        agregarButton.setOnAction(e -> agregaUsuario());
-        eliminarButton.setOnAction(e -> eliminaUsuario());
-    
-        VBox vbox = new VBox(10, subirButton, compartirButton, validarButton, agregarButton, eliminarButton);
-        Scene scene = new Scene(vbox, 300, 200);
-        primaryStage.setScene(scene);
-        primaryStage.show();
     }
 
     private static void subirArchivo() {
@@ -180,27 +160,24 @@ public class servidor {
     private static void startServer() {
         final int PORT = 12345;
         try {
-            socket = new ServerSocket(PORT);
+            serverSocket = new ServerSocket(PORT);
             System.out.println("Servidor listo\nBob está escuchando en el puerto " + PORT);
         } catch (IOException e) {
             System.err.println("Error al iniciar el servidor: " + e.getMessage());
         }
     }
-
+    
     private static void waitForClient(ServerSocket server) throws InterruptedException {
         while (true) {
             try {
                 Socket socket = server.accept();
                 System.out.println("Cliente conectado: " + socket.getInetAddress());
+                
+                dataInputStream = new DataInputStream(socket.getInputStream());
+                dataOutputStream = new DataOutputStream(socket.getOutputStream());
 
                 // Crear un nuevo hilo para manejar la conexión con el cliente
-                Thread clientThread = new Thread(new ClientHandler(socket));
-                clientThread.start();
-
-                DHKeyExchange.ServerDH dhKeyExchange;
-                dhKeyExchange = new DHKeyExchange.ServerDH();
-                dhKeyExchange.exchangeKeys(socket);
-
+                new Thread(new ClientHandler(socket)).start();
                 break;
             } catch (Exception e) {
                 Thread.sleep(1000);
@@ -210,7 +187,7 @@ public class servidor {
     }
 
     public static void recibirArchivo(Socket socket) {
-        try (DataInputStream dataInputStream = new DataInputStream(socket.getInputStream())) {
+        try {
             String fileName = dataInputStream.readUTF();
             long fileSize = dataInputStream.readLong();
             String saveFilePath = "recibido_" + fileName;
@@ -229,7 +206,7 @@ public class servidor {
                     totalBytesRead += bytesRead;
                 }
 
-                bufferedOutputStream.flush(); // Asegurar que todos los datos han sido escritos
+                bufferedOutputStream.flush(); // Asegurar que todataOutputStream los datos han sido escritos
 
                 if (totalBytesRead == fileSize) {
                     System.out.println("Archivo recibido correctamente y guardado como " + saveFilePath);
@@ -279,7 +256,53 @@ public class servidor {
 
         @Override
         public void run() {
+            try {
+                DHKeyExchange.ServerDH dhKeyExchange;
+                dhKeyExchange = new DHKeyExchange.ServerDH();
+                dhKeyExchange.exchangeKeys(this.clientSocket);
+                authenticateUser(this.clientSocket);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
+        private void authenticateUser(Socket clientSocket) {
+            while (true) {
+                try {
+
+                    String userEmail = dataInputStream.readUTF();
+                    String userPassword = dataInputStream.readUTF();
+
+                    try (Connection conn = connect();
+                            PreparedStatement stmt = conn
+                                    .prepareStatement(
+                                            "SELECT Contrasena, TipoUsuario FROM Usuarios WHERE Correo = ?")) {
+                        stmt.setString(1, userEmail);
+                        ResultSet rs = stmt.executeQuery();
+
+                        if (!rs.next()) {
+                            dataOutputStream.writeUTF("NOT_FOUND"); // Enviar mensaje si el usuario no se encuentra
+                            dataOutputStream.flush();
+                            continue;
+                        }
+
+                        String storedPassword = rs.getString("Contrasena");
+                        String userType = rs.getString("TipoUsuario");
+
+                        if (!BCrypt.checkpw(userPassword, storedPassword)) {
+                            dataOutputStream.writeUTF("INVALID"); // Enviar mensaje de error si la contraseña no coincide
+                            dataOutputStream.flush();
+                            continue;
+                        }
+
+                        dataOutputStream.writeUTF(userType); // Enviar tipo de usuario al cliente si la autenticación es exitosa
+                        dataOutputStream.flush();
+                        break;
+                    }
+                } catch (IOException | SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }
