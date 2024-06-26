@@ -13,7 +13,8 @@ import java.security.MessageDigest;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import org.mindrot.jbcrypt.BCrypt;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javax.crypto.Cipher;
 import javax.swing.JFileChooser;
 
@@ -22,6 +23,7 @@ public class servidor {
     static ServerSocket socket;
 
     private static Connection connect() throws SQLException {
+        final Logger logger = LoggerFactory.getLogger(servidor.class);
         String url = "jdbc:mysql://chef-server.mysql.database.azure.com:3306/chef?useSSL=true";
         return DriverManager.getConnection(url, "chefadmin", "ch3f4dm1n!");
     }
@@ -64,7 +66,7 @@ public class servidor {
     private static void subirArchivo() {
         System.out.println("Subiendo archivo...");
 
-        String connectStr = "DefaultEndpointsProtocol=https;AccountName=criptografia;AccountKey=ZqM6hU8KHAPBja0nWQ5YaiAC12vJqGv44R4HEytD5UwoLBpupGwQT2SAGVetp9kqPz04F+6M0WGW+ASt499lYQ==;EndpointSuffix=core.windows.net";
+        String connectStr = "https://criptografia.blob.core.windows.net/recetas?sp=racwdli&st=2024-06-26T05:33:45Z&se=2024-06-28T13:33:45Z&sv=2022-11-02&sr=c&sig=uPPamXwmkNlP69aTGs0bP8BFrCo39o5X3Smed7gazVE%3D";
         String containerName = "recetas";
 
         // Crear un selector de archivos usando JFileChooser
