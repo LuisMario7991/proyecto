@@ -19,22 +19,26 @@ import javax.swing.JFileChooser;
 
 public class servidor {
 
+    static ServerSocket socket;
+
     private static Connection connect() throws SQLException {
         String url = "jdbc:mysql://chef-server.mysql.database.azure.com:3306/chef?useSSL=true";
         return DriverManager.getConnection(url, "chefadmin", "ch3f4dm1n!");
     }
 
     public static void main(String[] args) {
-        LoginScreen.initialize(args); // Inicia con la pantalla de login
+        try {
+            startServer();
+            waitForClient(socket);
+
+            LoginScreen.initialize(args); // Inicia con la pantalla de login
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void showMainInterface(Stage primaryStage) {
-        try {
-            setupUI(primaryStage);
-            startServer();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        setupUI(primaryStage);
     }
 
     private static void setupUI(Stage stage) {
@@ -177,26 +181,33 @@ public class servidor {
 
     private static void startServer() {
         final int PORT = 12345;
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+        try {
+            socket = new ServerSocket(PORT);
             System.out.println("Servidor listo\nBob está escuchando en el puerto " + PORT);
-            while (true) {
-                try {
-                    Socket socket = serverSocket.accept();
-                    System.out.println("Cliente conectado: " + socket.getInetAddress());
-                    // Crear un nuevo hilo para manejar la conexión con el cliente
-                    Thread clientThread = new Thread(new ClientHandler(socket));
-                    clientThread.start();
-                    DHKeyExchange.ServerDH dhKeyExchange;
-                    dhKeyExchange = new DHKeyExchange.ServerDH();
-                    dhKeyExchange.exchangeKeys(socket);
-                    break;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-            }
         } catch (IOException e) {
             System.err.println("Error al iniciar el servidor: " + e.getMessage());
+        }
+    }
+
+    private static void waitForClient(ServerSocket server) throws InterruptedException {
+        while (true) {
+            try {
+                Socket socket = server.accept();
+                System.out.println("Cliente conectado: " + socket.getInetAddress());
+
+                // Crear un nuevo hilo para manejar la conexión con el cliente
+                Thread clientThread = new Thread(new ClientHandler(socket));
+                clientThread.start();
+
+                DHKeyExchange.ServerDH dhKeyExchange;
+                dhKeyExchange = new DHKeyExchange.ServerDH();
+                dhKeyExchange.exchangeKeys(socket);
+
+                break;
+            } catch (Exception e) {
+                Thread.sleep(1000);
+                System.err.println("Error en el intercambio de llaves: " + e.getMessage());
+            }
         }
     }
 
