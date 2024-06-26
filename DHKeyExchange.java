@@ -18,6 +18,8 @@ public class DHKeyExchange {
         private final PrivateKey privateKey;
 
         public ServerDH() throws Exception {
+            System.out.println("Generando parámetros Diffie-Hellman");
+            
             // Generar parámetros Diffie-Hellman
             AlgorithmParameterGenerator paramGen = AlgorithmParameterGenerator.getInstance("DH");
             paramGen.init(2048);
@@ -35,11 +37,13 @@ public class DHKeyExchange {
         }
 
         public void exchangeKeys(Socket socket) throws Exception {
+            System.out.println("Compartiendo parámetros Diffie-Hellman");
+
             OutputStream out = socket.getOutputStream();
             ObjectOutputStream oos = new ObjectOutputStream(out);
             InputStream in = socket.getInputStream();
             ObjectInputStream ois = new ObjectInputStream(in);
-            
+
             // Enviar parámetros Diffie-Hellman a Alice
             oos.writeObject(dhSpec.getP());
             oos.flush();
@@ -79,20 +83,21 @@ public class DHKeyExchange {
             Files.writeString(Paths.get(fileName), bytesToHex(first16Bytes), StandardOpenOption.CREATE);
 
             System.out.println("Intecambio de llaves DH terminado");
-            //ois.close();
-            //oos.close();
+            // ois.close();
+            // oos.close();
         }
 
         private static String bytesToHex(byte[] bytes) {
             StringBuilder hexString = new StringBuilder();
             for (byte b : bytes) {
                 String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
+                if (hex.length() == 1)
+                    hexString.append('0');
                 hexString.append(hex);
             }
             return hexString.toString();
         }
-        
+
         private boolean validatePublicKey(PublicKey key) {
             // Implementación de ejemplo: validar la especificación de la clave y cualquier
             // otra propiedad necesaria
