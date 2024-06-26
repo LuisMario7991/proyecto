@@ -172,34 +172,37 @@ public class servidor {
 
     public static void recibirArchivo(Socket socket) {
         try {
-            String fileName = dataInputStream.readUTF();
-            long fileSize = dataInputStream.readLong();
-            String saveFilePath = "recibido_" + fileName;
+            for (int i = 0; i < 3; i++) {
+                String fileName = dataInputStream.readUTF();
+                long fileSize = dataInputStream.readLong();
+                String saveFilePath = "recibido_" + fileName;
 
-            System.out.println("Recibiendo archivo: " + fileName + " de tamaño: " + fileSize + " bytes");
+                System.out.println("Recibiendo archivo: " + fileName + " de tamaño: " + fileSize + " bytes");
 
-            try (FileOutputStream fileOutputStream = new FileOutputStream(saveFilePath);
-                    BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream)) {
+                try (FileOutputStream fileOutputStream = new FileOutputStream(saveFilePath);
+                        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream)) {
 
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                long totalBytesRead = 0;
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+                    long totalBytesRead = 0;
 
-                while (totalBytesRead < fileSize && (bytesRead = dataInputStream.read(buffer)) != -1) {
-                    bufferedOutputStream.write(buffer, 0, bytesRead);
-                    totalBytesRead += bytesRead;
-                }
+                    while (totalBytesRead < fileSize && (bytesRead = dataInputStream.read(buffer)) != -1) {
+                        bufferedOutputStream.write(buffer, 0, bytesRead);
+                        totalBytesRead += bytesRead;
+                    }
 
-                bufferedOutputStream.flush(); // Asegurar que todataOutputStream los datos han sido escritos
+                    bufferedOutputStream.flush(); // Asegurar que todataOutputStream los datos han sido escritos
 
-                if (totalBytesRead == fileSize) {
-                    System.out.println("Archivo recibido correctamente y guardado como " + saveFilePath);
+                    if (totalBytesRead == fileSize) {
+                        System.out.println("Archivo recibido correctamente y guardado como " + saveFilePath);
 
-                } else {
-                    System.out.println("Error: El tamaño del archivo recibido (" + totalBytesRead
-                            + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
+                    } else {
+                        System.out.println("Error: El tamaño del archivo recibido (" + totalBytesRead
+                                + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
+                    }
                 }
             }
+            System.out.println("Archivos recibido y guardado.");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -320,6 +323,9 @@ public class servidor {
                     break;
                 case "eliminaUsuario":
                     eliminaUsuario();
+                    break;
+                case "recibirArchivo":
+                    recibirArchivo(this.clientSocket);
                     break;
                 default:
                     dataOutputStream.writeUTF("Comando desconocido");
