@@ -166,13 +166,13 @@ public class servidor {
             System.err.println("Error al iniciar el servidor: " + e.getMessage());
         }
     }
-    
+
     private static void waitForClient(ServerSocket server) throws InterruptedException {
         while (true) {
             try {
                 Socket socket = server.accept();
                 System.out.println("Cliente conectado: " + socket.getInetAddress());
-                
+
                 dataInputStream = new DataInputStream(socket.getInputStream());
                 dataOutputStream = new DataOutputStream(socket.getOutputStream());
 
@@ -260,7 +260,19 @@ public class servidor {
                 DHKeyExchange.ServerDH dhKeyExchange;
                 dhKeyExchange = new DHKeyExchange.ServerDH();
                 dhKeyExchange.exchangeKeys(this.clientSocket);
+
                 authenticateUser(this.clientSocket);
+
+                // El servidor ahora espera por comandos
+                while (!clientSocket.isClosed()) {
+                    try {
+                        String command = dataInputStream.readUTF();
+                        processCommand(command);
+                    } catch (IOException e) {
+                        System.err.println("Error al leer el comando: " + e.getMessage());
+                        closeConnection();
+                    }
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -302,6 +314,40 @@ public class servidor {
                 } catch (IOException | SQLException e) {
                     e.printStackTrace();
                 }
+            }
+        }
+
+        private void processCommand(String command) throws IOException {
+            switch (command) {
+                case "subirArchivo":
+                    subirArchivo();
+                    break;
+                case "compartirArchivo":
+                    compartirArchivo();
+                    break;
+                case "validarArchivo":
+                    validarArchivo();
+                    break;
+                // Agrega más comandos según necesidad
+                default:
+                    dataOutputStream.writeUTF("Comando desconocido");
+                    break;
+            }
+        }
+
+        private void closeConnection() {
+            try {
+                if (clientSocket != null) {
+                    clientSocket.close();
+                }
+                if (dataInputStream != null) {
+                    dataInputStream.close();
+                }
+                if (dataOutputStream != null) {
+                    dataOutputStream.close();
+                }
+            } catch (IOException e) {
+                System.err.println("Error al cerrar la conexión: " + e.getMessage());
             }
         }
     }
