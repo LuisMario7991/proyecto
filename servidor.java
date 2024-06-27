@@ -17,8 +17,10 @@ import javax.swing.JFileChooser;
 public class servidor {
 
     static ServerSocket serverSocket;
-    private static DataInputStream dataInputStream;
-    private static DataOutputStream dataOutputStream;
+    protected static DataInputStream dataInputStream;
+    protected static DataOutputStream dataOutputStream;
+    protected static ObjectInputStream objectInputStream;
+    protected static ObjectOutputStream objectOutputStream;
 
     private static Connection connect() throws SQLException {
         // final Logger logger = LoggerFactory.getLogger(servidor.class);
@@ -41,7 +43,7 @@ public class servidor {
         String connectStr = "https://criptografia.blob.core.windows.net/recetas?sp=racwdli&st=2024-06-26T05:33:45Z&se=2024-06-28T13:33:45Z&sv=2022-11-02&sr=c&sig=uPPamXwmkNlP69aTGs0bP8BFrCo39o5X3Smed7gazVE%3D";
         String containerName = "recetas";
 
-        recibirArchivo(clientSocket, "uploadFile");
+        recibeArchivo(clientSocket, "uploadFile");
 
         File selectedFile = new File("uploadFile");
 
@@ -149,6 +151,8 @@ public class servidor {
 
                 dataInputStream = new DataInputStream(socket.getInputStream());
                 dataOutputStream = new DataOutputStream(socket.getOutputStream());
+                objectInputStream = new ObjectInputStream(socket.getInputStream());
+                objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
 
                 // Crear un nuevo hilo para manejar la conexión con el cliente
                 new Thread(new ClientHandler(socket)).start();
@@ -159,7 +163,7 @@ public class servidor {
         }
     }
 
-    public static void recibirArchivo(Socket socket) {
+    public static void recibeArchivo() {
         try {
             String fileName = dataInputStream.readUTF();
             long fileSize = dataInputStream.readLong();
@@ -188,14 +192,15 @@ public class servidor {
                     System.out.println("Error: El tamaño del archivo recibido (" + totalBytesRead
                             + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
                 }
+
+                fileOutputStream.close();
             }
-            System.out.println("Archivos recibido y guardado.");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static void recibirArchivo(Socket socket, String saveFilePath) {
+    public static void recibeArchivo(Socket socket, String saveFilePath) {
         try {
             String fileName = dataInputStream.readUTF();
             long fileSize = dataInputStream.readLong();
@@ -211,20 +216,18 @@ public class servidor {
 
                 while (totalBytesRead < fileSize && (bytesRead = dataInputStream.read(buffer)) != -1) {
                     bufferedOutputStream.write(buffer, 0, bytesRead);
+                    bufferedOutputStream.flush();
                     totalBytesRead += bytesRead;
                 }
-
-                bufferedOutputStream.flush(); // Asegurar que todataOutputStream los datos han sido escritos
+                fileOutputStream.close();
 
                 if (totalBytesRead == fileSize) {
                     System.out.println("Archivo recibido correctamente y guardado como " + saveFilePath);
-
                 } else {
                     System.out.println("Error: El tamaño del archivo recibido (" + totalBytesRead
-                            + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
+                    + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
                 }
             }
-            System.out.println("Archivos recibido y guardado.");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -369,10 +372,8 @@ public class servidor {
                 case "eliminaUsuario":
                     eliminaUsuario();
                     break;
-                case "recibirArchivo":
-                    for (int i = 0; i < 3; ++i) {
-                        recibirArchivo(this.clientSocket);
-                    }
+                case "recibeArchivo":
+                    recibeArchivo();
                     break;
                 case "terminaConexion":
                     cerrarConexion(this.clientSocket);
