@@ -7,7 +7,7 @@ class ClientHandler implements Runnable {
         try {
             DHKeyExchange.ServerDH dhKeyExchange;
             dhKeyExchange = new DHKeyExchange.ServerDH();
-            dhKeyExchange.exchangeKeys(Servidor.clientSocket);
+            dhKeyExchange.exchangeKeys();
 
             UserManagement.authenticateUser();
 
