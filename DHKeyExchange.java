@@ -39,21 +39,21 @@ public class DHKeyExchange {
             System.out.println("Compartiendo parámetros Diffie-Hellman");
 
             // Enviar parámetros Diffie-Hellman a Alice
-            servidor.objectOutputStream.writeObject(dhSpec.getP());
-            servidor.objectOutputStream.flush();
-            servidor.objectOutputStream.writeObject(dhSpec.getG());
-            servidor.objectOutputStream.flush();
-            servidor.objectOutputStream.writeInt(dhSpec.getL());
-            servidor.objectOutputStream.flush();
+            Servidor.objectOutputStream.writeObject(dhSpec.getP());
+            Servidor.objectOutputStream.flush();
+            Servidor.objectOutputStream.writeObject(dhSpec.getG());
+            Servidor.objectOutputStream.flush();
+            Servidor.objectOutputStream.writeInt(dhSpec.getL());
+            Servidor.objectOutputStream.flush();
             System.out.println("Parámetros Diffie-Hellman enviados a Alice.");
 
             // Enviar clave pública a Alice
-            servidor.objectOutputStream.writeObject(publicKey);
-            servidor.objectOutputStream.flush();
+            Servidor.objectOutputStream.writeObject(publicKey);
+            Servidor.objectOutputStream.flush();
             System.out.println("Clave pública de Bob enviada a Alice.");
 
             // Recibir clave pública de Alice
-            PublicKey alicePublicKey = (PublicKey) servidor.objectInputStream.readObject();
+            PublicKey alicePublicKey = (PublicKey) Servidor.objectInputStream.readObject();
             if (!validatePublicKey(alicePublicKey)) {
                 throw new IllegalArgumentException("Clave pública recibida es inválida");
             }

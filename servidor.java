@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import javax.crypto.Cipher;
 import javax.swing.JFileChooser;
 
-public class servidor {
+public class Servidor {
 
     static ServerSocket serverSocket;
     protected static DataInputStream dataInputStream;
@@ -231,32 +231,6 @@ public class servidor {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private static byte[] hashBytes(byte[] data) throws Exception {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        return digest.digest(data);
-    }
-
-    private static byte[] hashFile(String filePath) throws Exception {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] fileBytes = Files.readAllBytes(Paths.get(filePath));
-        return digest.digest(fileBytes);
-    }
-
-    private static PublicKey getPublicKeyFromFile(String filePath) throws Exception {
-        byte[] publicKeyBytes = Files.readAllBytes(Paths.get(filePath));
-        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        return keyFactory.generatePublic(keySpec);
-    }
-
-    private static byte[] decryptWithPublicKey(String filePath, PublicKey publicKey) throws Exception {
-        Cipher cipher = Cipher.getInstance("RSA");
-        cipher.init(Cipher.DECRYPT_MODE, publicKey);
-
-        byte[] encryptedData = Files.readAllBytes(Paths.get(filePath));
-        return cipher.doFinal(encryptedData);
     }
 
     private static void cerrarConexion(Socket socketClient) {
