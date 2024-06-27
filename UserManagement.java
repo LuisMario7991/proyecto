@@ -1,4 +1,7 @@
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.Socket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -17,14 +20,17 @@ public class UserManagement {
         return DriverManager.getConnection(url, "chefadmin", "ch3f4dm1n!");
     }
 
-    protected static void agregarUsuario() {
+    protected static void agregarUsuario(Socket clientSocket) {
         try {
             System.out.println("Agregando usuario...");
+            
+            DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
+            DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
 
             // Lee los datos del nuevo usuario enviados por el cliente
-            String email = Servidor.dataInputStream.readUTF();
-            String password = Servidor.dataInputStream.readUTF();
-            String userType = Servidor.dataInputStream.readUTF();
+            String email = dataInputStream.readUTF();
+            String password = dataInputStream.readUTF();
+            String userType = dataInputStream.readUTF();
 
             // Hashea la contraseña
             String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
@@ -38,23 +44,26 @@ public class UserManagement {
                 stmt.executeUpdate();
 
                 System.out.println("Usuario agregado exitosamente.");
-                Servidor.dataOutputStream.writeUTF("Usuario agregado exitosamente");
+                dataOutputStream.writeUTF("Usuario agregado exitosamente");
 
                 connection.close();
             } catch (SQLException ex) {
                 System.err.println("Error con la conexión de la base de datos: " + ex.getMessage());
-                Servidor.dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
+                dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
             }
         } catch (Exception e) {
             System.err.println("Error con la recepción de parámetros del usuario: " + e.getMessage());
         }
     }
 
-    protected static void eliminarUsuario() {
+    protected static void eliminarUsuario(Socket clientSocket) {
         try {
             System.out.println("Eliminando usuario...");
 
-            String email = Servidor.dataInputStream.readUTF();
+            DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
+            DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+
+            String email = dataInputStream.readUTF();
 
             try (Connection connection = connect();
                     PreparedStatement stmt = connection.prepareStatement("DELETE FROM Usuarios WHERE Correo = ?")) {
@@ -62,24 +71,29 @@ public class UserManagement {
                 stmt.executeUpdate();
 
                 System.out.println("Usuario eliminado exitosamente.");
-                Servidor.dataOutputStream.writeUTF("Usuario eliminado exitosamente");
+                dataOutputStream.writeUTF("Usuario eliminado exitosamente");
 
                 connection.close();
             } catch (SQLException ex) {
                 System.err.println("Error con la conexión de la base de datos: " + ex.getMessage());
-                Servidor.dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
+                dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
             }
         } catch (Exception e) {
             System.err.println("Error con la recepción de parámetros del usuario: " + e.getMessage());
         }
     }
 
-    protected static void authenticateUser() {
+    protected static void authenticateUser(Socket clientSocket) {
         while (true) {
             try {
-                String userEmail = Servidor.dataInputStream.readUTF();
-                String userPassword = Servidor.dataInputStream.readUTF();
-
+                
+                DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
+                DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+                
+                String userEmail = dataInputStream.readUTF();
+                String userPassword = dataInputStream.readUTF();
+                
+                System.out.println("Autenticando usuario");
                 try (Connection connection = connect();
                         PreparedStatement stmt = connection
                                 .prepareStatement(
@@ -88,8 +102,8 @@ public class UserManagement {
                     ResultSet rs = stmt.executeQuery();
 
                     if (!rs.next()) {
-                        Servidor.dataOutputStream.writeUTF("NOT_FOUND"); // Enviar mensaje si el usuario no se encuentra
-                        Servidor.dataOutputStream.flush();
+                        dataOutputStream.writeUTF("NOT_FOUND"); // Enviar mensaje si el usuario no se encuentra
+                        dataOutputStream.flush();
                         continue;
                     }
 
@@ -97,15 +111,15 @@ public class UserManagement {
                     String userType = rs.getString("TipoUsuario");
 
                     if (!BCrypt.checkpw(userPassword, storedPassword)) {
-                        Servidor.dataOutputStream.writeUTF("INVALID"); // Enviar mensaje de error si la contraseña no
+                        dataOutputStream.writeUTF("INVALID"); // Enviar mensaje de error si la contraseña no
                         // coincide
-                        Servidor.dataOutputStream.flush();
+                        dataOutputStream.flush();
                         continue;
                     }
 
-                    Servidor.dataOutputStream.writeUTF(userType); // Enviar tipo de usuario al cliente si la
+                    dataOutputStream.writeUTF(userType); // Enviar tipo de usuario al cliente si la
                     // autenticación es exitosa
-                    Servidor.dataOutputStream.flush();
+                    dataOutputStream.flush();
                     connection.close();
                     break;
                 }

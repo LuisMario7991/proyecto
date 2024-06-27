@@ -1,33 +1,36 @@
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.Socket;
 
 public class CommandProcessor {
 
-    protected static void processCommand(String command) throws IOException {
+    public static void processCommand(Socket clientSocket, String command) throws IOException {
         switch (command) {
             case "subirArchivo":
-                FileManagement.subirArchivo();
+                FileManagement.subirArchivo(clientSocket);
                 break;
             case "compartirArchivo":
-                FileManagement.compartirArchivo();
+                FileManagement.compartirArchivo(clientSocket);
                 break;
             case "validarArchivo":
-                FileManagement.validarArchivo();
+                FileManagement.validarArchivo(clientSocket);
                 break;
             case "agregaUsuario":
-                UserManagement.agregarUsuario();
+                UserManagement.agregarUsuario(clientSocket);
                 break;
             case "eliminaUsuario":
-                UserManagement.eliminarUsuario();
+                UserManagement.eliminarUsuario(clientSocket);
                 break;
             case "recibeArchivo":
-                FileManagement.recibirArchivo();
+                FileManagement.recibirArchivo(clientSocket);
                 break;
             case "terminaConexion":
-                Servidor.cerrarConexion();
+                Servidor.cerrarConexion(clientSocket);
                 break;
             default:
-                Servidor.dataOutputStream.writeUTF("Comando desconocido");
+                DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+                dataOutputStream.writeUTF("Comando desconocido");
                 break;
         }
-    }    
+    }
 }

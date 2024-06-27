@@ -1,29 +1,39 @@
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.net.Socket;
 
 class ClientHandler implements Runnable {
+    Socket clientSocket;
+    
+    public ClientHandler(Socket clientSocket) {
+        this.clientSocket = clientSocket;
+    }
 
     @Override
     public void run() {
         try {
+            DataInputStream dataInputStream = new DataInputStream(this.clientSocket.getInputStream());
+
             DHKeyExchange.ServerDH dhKeyExchange;
             dhKeyExchange = new DHKeyExchange.ServerDH();
-            dhKeyExchange.exchangeKeys();
+            dhKeyExchange.exchangeKeys(this.clientSocket);
 
-            UserManagement.authenticateUser();
+            UserManagement.authenticateUser(this.clientSocket);
 
             // El servidor ahora espera por comandos
-            while (!Servidor.clientSocket.isClosed()) {
+            while (!this.clientSocket.isClosed()) {
                 try {
                     System.out.println("Esperando intrucción del cliente");
-                    String command = Servidor.dataInputStream.readUTF();
-                    CommandProcessor.processCommand(command);
+                    String command = dataInputStream.readUTF();
+                    CommandProcessor.processCommand(this.clientSocket, command);
                 } catch (IOException e) {
-                    System.err.println("Error al leer el comando: " + e.getMessage());
-                    Servidor.cerrarConexion();
+                    System.out.println("Error al leer el comando: " + e.getMessage());
+                    Servidor.cerrarConexion(this.clientSocket);
                 }
             }
+            Thread.sleep(10000);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Error en el exchangeKeys(): " + e.getMessage());
         }
     }
 }

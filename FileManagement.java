@@ -1,17 +1,19 @@
 import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.Socket;
 
 public class FileManagement {
 
-    protected static void subirArchivo() {
+    protected static void subirArchivo(Socket clientSocket) {
         System.out.println("Subiendo archivo...");
 
         String connectStr = "https://criptografia.blob.core.windows.net/recetas?sp=racwdli&st=2024-06-26T05:33:45Z&se=2024-06-28T13:33:45Z&sv=2022-11-02&sr=c&sig=uPPamXwmkNlP69aTGs0bP8BFrCo39o5X3Smed7gazVE%3D";
         String containerName = "recetas";
 
-        recibirArchivo("uploadFile");
+        recibirArchivo(clientSocket, "uploadFile");
 
         File selectedFile = new File("uploadFile");
 
@@ -20,7 +22,7 @@ public class FileManagement {
         System.out.println("Subiendo archivo...");
     }
     
-    protected static void compartirArchivo() {
+    protected static void compartirArchivo(Socket clientSocket) {
         // Lógica para compartir archivo
         System.out.println("Compartiendo archivo...");
         // Aquí se debería implementar la lógica para enviar el archivo al cliente
@@ -29,7 +31,7 @@ public class FileManagement {
         // enviarArchivoAlCliente();
     }
 
-    protected static void validarArchivo() {
+    protected static void validarArchivo(Socket clientSocket) {
         System.out.println("Validando archivo...");
         // Aplicar hash SHA-256 al archivo 'm.txt'
         // byte[] fileHash = hashFile("received_m.txt");
@@ -47,10 +49,12 @@ public class FileManagement {
         // MATCH"));;
     }
 
-    protected static void recibirArchivo() {
-        try {
-            String fileName = Servidor.dataInputStream.readUTF();
-            long fileSize = Servidor.dataInputStream.readLong();
+    protected static void recibirArchivo(Socket clientSocket) {
+        try {  
+            DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
+            
+            String fileName = dataInputStream.readUTF();
+            long fileSize = dataInputStream.readLong();
             String saveFilePath = "recibido_" + fileName;
 
             System.out.println("Recibiendo archivo: " + fileName + " de tamaño: " + fileSize + " bytes");
@@ -62,7 +66,7 @@ public class FileManagement {
                 int bytesRead;
                 long totalBytesRead = 0;
 
-                while (totalBytesRead < fileSize && (bytesRead = Servidor.dataInputStream.read(buffer)) != -1) {
+                while (totalBytesRead < fileSize && (bytesRead = dataInputStream.read(buffer)) != -1) {
                     bufferedOutputStream.write(buffer, 0, bytesRead);
                     totalBytesRead += bytesRead;
                 }
@@ -84,10 +88,12 @@ public class FileManagement {
         }
     }
 
-    protected static void recibirArchivo(String saveFilePath) {
+    protected static void recibirArchivo(Socket clientSocket, String saveFilePath) {
         try {
-            String fileName = Servidor.dataInputStream.readUTF();
-            long fileSize = Servidor.dataInputStream.readLong();
+            DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
+
+            String fileName = dataInputStream.readUTF();
+            long fileSize = dataInputStream.readLong();
 
             System.out.println("Recibiendo archivo: " + fileName + " de tamaño: " + fileSize + " bytes");
 
@@ -98,7 +104,7 @@ public class FileManagement {
                 int bytesRead;
                 long totalBytesRead = 0;
 
-                while (totalBytesRead < fileSize && (bytesRead = Servidor.dataInputStream.read(buffer)) != -1) {
+                while (totalBytesRead < fileSize && (bytesRead = dataInputStream.read(buffer)) != -1) {
                     bufferedOutputStream.write(buffer, 0, bytesRead);
                     bufferedOutputStream.flush();
                     totalBytesRead += bytesRead;

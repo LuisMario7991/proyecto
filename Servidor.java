@@ -4,12 +4,12 @@ import java.net.Socket;
 
 public class Servidor {
 
-    protected static ServerSocket serverSocket;
-    protected static Socket clientSocket;
-    protected static DataInputStream dataInputStream;
-    protected static DataOutputStream dataOutputStream;
-    protected static ObjectInputStream objectInputStream;
-    protected static ObjectOutputStream objectOutputStream;
+    private static ServerSocket serverSocket;
+
+    // DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
+    // DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+    // ObjectInputStream objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
+    // ObjectOutputStream objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
 
     protected static void startServer() {
         final int PORT = 12345;
@@ -25,17 +25,11 @@ public class Servidor {
         System.out.println("Esperando nuevo cliente");
         try {
             while (true) {
-                clientSocket = serverSocket.accept();
+                Socket clientSocket = serverSocket.accept();
                 System.out.println("Cliente conectado: " + clientSocket.getInetAddress());
 
-                dataInputStream = new DataInputStream(clientSocket.getInputStream());
-                dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
-                objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
-                objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
-
                 // Crear un nuevo hilo para manejar la conexión con el cliente
-                new Thread(new ClientHandler()).start();
-                break;
+                new Thread(new ClientHandler(clientSocket)).start();
             }
         } catch (IOException e) {
             try {
@@ -46,29 +40,17 @@ public class Servidor {
         }
     }
 
-    protected static void cerrarConexion() {
+    public static void cerrarConexion(Socket clientSocket) {
         try {
-            if (dataInputStream != null)
-                dataInputStream.close();
-
-            if (dataOutputStream != null)
-                dataOutputStream.close();
-
-            if (objectInputStream != null)
-                objectInputStream.close();
-
-            if (objectOutputStream != null)
-                objectOutputStream.close();
-
-            if (clientSocket != null)
+            if (!clientSocket.isClosed() || clientSocket != null) {
                 clientSocket.close();
+            }
 
             System.out.println("Conexión cerrada correctamente.");
 
             waitForClient();
         } catch (IOException e) {
-            e.printStackTrace();
-            System.err.println("No se pudo cerrar correctamente la conexión: " + e.getMessage());
+            System.err.println("Error al cerrar la conexión: " + e.getMessage());
         }
     }
 }

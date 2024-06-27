@@ -1,3 +1,6 @@
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -34,25 +37,28 @@ public class DHKeyExchange {
             this.privateKey = keyPair.getPrivate();
         }
 
-        public void exchangeKeys() throws Exception {
+        public void exchangeKeys(Socket clientSocket) throws Exception {
             System.out.println("Compartiendo parámetros Diffie-Hellman");
 
+            ObjectInputStream objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+
             // Enviar parámetros Diffie-Hellman a Alice
-            Servidor.objectOutputStream.writeObject(dhSpec.getP());
-            Servidor.objectOutputStream.flush();
-            Servidor.objectOutputStream.writeObject(dhSpec.getG());
-            Servidor.objectOutputStream.flush();
-            Servidor.objectOutputStream.writeInt(dhSpec.getL());
-            Servidor.objectOutputStream.flush();
+            objectOutputStream.writeObject(dhSpec.getP());
+            objectOutputStream.flush();
+            objectOutputStream.writeObject(dhSpec.getG());
+            objectOutputStream.flush();
+            objectOutputStream.writeInt(dhSpec.getL());
+            objectOutputStream.flush();
             System.out.println("Parámetros Diffie-Hellman enviados a Alice.");
 
             // Enviar clave pública a Alice
-            Servidor.objectOutputStream.writeObject(publicKey);
-            Servidor.objectOutputStream.flush();
+            objectOutputStream.writeObject(publicKey);
+            objectOutputStream.flush();
             System.out.println("Clave pública de Bob enviada a Alice.");
 
             // Recibir clave pública de Alice
-            PublicKey alicePublicKey = (PublicKey) Servidor.objectInputStream.readObject();
+            PublicKey alicePublicKey = (PublicKey) objectInputStream.readObject();
             if (!validatePublicKey(alicePublicKey)) {
                 throw new IllegalArgumentException("Clave pública recibida es inválida");
             }
@@ -74,8 +80,6 @@ public class DHKeyExchange {
             String fileName = "hasht.txt";
             Files.write(Paths.get(fileName), first16Bytes, StandardOpenOption.CREATE);
             // Files.writeString(Paths.get(fileName), bytesToHex(first16Bytes), StandardOpenOption.CREATE);
-
-            System.out.println("Intecambio de llaves DH terminado");
         }
 
         private static String bytesToHex(byte[] bytes) {
