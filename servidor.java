@@ -35,25 +35,19 @@ public class servidor {
         }
     }
 
-    private static void subirArchivo() {
+    private static void subirArchivo(Socket clientSocket) {
         System.out.println("Subiendo archivo...");
 
         String connectStr = "https://criptografia.blob.core.windows.net/recetas?sp=racwdli&st=2024-06-26T05:33:45Z&se=2024-06-28T13:33:45Z&sv=2022-11-02&sr=c&sig=uPPamXwmkNlP69aTGs0bP8BFrCo39o5X3Smed7gazVE%3D";
         String containerName = "recetas";
 
-        // Crear un selector de archivos usando JFileChooser
-        JFileChooser fileChooser = new JFileChooser();
-        int returnValue = fileChooser.showOpenDialog(null);
+        recibirArchivo(clientSocket, "uploadFile");
 
-        if (returnValue == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
+        File selectedFile = new File("uploadFile");
 
-            // Subir el archivo cifrado al contenedor en Azure Blob Storage
-
-            BlobUploader blobUploader = new BlobUploader(connectStr, containerName);
-            blobUploader.uploadEncryptedBlob(selectedFile);
-            System.out.println("Subiendo archivo...");
-        }
+        BlobUploader blobUploader = new BlobUploader(connectStr, containerName);
+        blobUploader.uploadEncryptedBlob(selectedFile);
+        System.out.println("Subiendo archivo...");
     }
 
     private static void compartirArchivo() {
@@ -118,7 +112,6 @@ public class servidor {
         try {
             System.out.println("Eliminando usuario...");
 
-            // Lee los datos del nuevo usuario enviados por el cliente
             String email = dataInputStream.readUTF();
 
             try (Connection conn = connect();
@@ -168,34 +161,67 @@ public class servidor {
 
     public static void recibirArchivo(Socket socket) {
         try {
-            for (int i = 0; i < 3; i++) {
-                String fileName = dataInputStream.readUTF();
-                long fileSize = dataInputStream.readLong();
-                String saveFilePath = "recibido_" + fileName;
+            String fileName = dataInputStream.readUTF();
+            long fileSize = dataInputStream.readLong();
+            String saveFilePath = "recibido_" + fileName;
 
-                System.out.println("Recibiendo archivo: " + fileName + " de tamaño: " + fileSize + " bytes");
+            System.out.println("Recibiendo archivo: " + fileName + " de tamaño: " + fileSize + " bytes");
 
-                try (FileOutputStream fileOutputStream = new FileOutputStream(saveFilePath);
-                        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream)) {
+            try (FileOutputStream fileOutputStream = new FileOutputStream(saveFilePath);
+                    BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream)) {
 
-                    byte[] buffer = new byte[1024];
-                    int bytesRead;
-                    long totalBytesRead = 0;
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                long totalBytesRead = 0;
 
-                    while (totalBytesRead < fileSize && (bytesRead = dataInputStream.read(buffer)) != -1) {
-                        bufferedOutputStream.write(buffer, 0, bytesRead);
-                        totalBytesRead += bytesRead;
-                    }
+                while (totalBytesRead < fileSize && (bytesRead = dataInputStream.read(buffer)) != -1) {
+                    bufferedOutputStream.write(buffer, 0, bytesRead);
+                    totalBytesRead += bytesRead;
+                }
 
-                    bufferedOutputStream.flush(); // Asegurar que todataOutputStream los datos han sido escritos
+                bufferedOutputStream.flush(); // Asegurar que todataOutputStream los datos han sido escritos
 
-                    if (totalBytesRead == fileSize) {
-                        System.out.println("Archivo recibido correctamente y guardado como " + saveFilePath);
+                if (totalBytesRead == fileSize) {
+                    System.out.println("Archivo recibido correctamente y guardado como " + saveFilePath);
 
-                    } else {
-                        System.out.println("Error: El tamaño del archivo recibido (" + totalBytesRead
-                                + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
-                    }
+                } else {
+                    System.out.println("Error: El tamaño del archivo recibido (" + totalBytesRead
+                            + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
+                }
+            }
+            System.out.println("Archivos recibido y guardado.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void recibirArchivo(Socket socket, String saveFilePath) {
+        try {
+            String fileName = dataInputStream.readUTF();
+            long fileSize = dataInputStream.readLong();
+
+            System.out.println("Recibiendo archivo: " + fileName + " de tamaño: " + fileSize + " bytes");
+
+            try (FileOutputStream fileOutputStream = new FileOutputStream(saveFilePath);
+                    BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream)) {
+
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                long totalBytesRead = 0;
+
+                while (totalBytesRead < fileSize && (bytesRead = dataInputStream.read(buffer)) != -1) {
+                    bufferedOutputStream.write(buffer, 0, bytesRead);
+                    totalBytesRead += bytesRead;
+                }
+
+                bufferedOutputStream.flush(); // Asegurar que todataOutputStream los datos han sido escritos
+
+                if (totalBytesRead == fileSize) {
+                    System.out.println("Archivo recibido correctamente y guardado como " + saveFilePath);
+
+                } else {
+                    System.out.println("Error: El tamaño del archivo recibido (" + totalBytesRead
+                            + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
                 }
             }
             System.out.println("Archivos recibido y guardado.");
@@ -240,7 +266,7 @@ public class servidor {
 
             if (socketClient != null && !socketClient.isClosed())
                 socketClient.close();
-                
+
             System.out.println("Conexión cerrada correctamente.");
 
             waitForClient(serverSocket);
@@ -329,7 +355,7 @@ public class servidor {
         private void processCommand(String command) throws IOException {
             switch (command) {
                 case "subirArchivo":
-                    subirArchivo();
+                    subirArchivo(this.clientSocket);
                     break;
                 case "compartirArchivo":
                     compartirArchivo();
@@ -344,7 +370,9 @@ public class servidor {
                     eliminaUsuario();
                     break;
                 case "recibirArchivo":
-                    recibirArchivo(this.clientSocket);
+                    for (int i = 0; i < 3; ++i) {
+                        recibirArchivo(this.clientSocket);
+                    }
                     break;
                 case "terminaConexion":
                     cerrarConexion(this.clientSocket);
