@@ -93,8 +93,6 @@ public class UserManagement {
                         continue;
                     }
 
-                    connection.close();
-
                     String storedPassword = rs.getString("Contrasena");
                     String userType = rs.getString("TipoUsuario");
 
@@ -106,9 +104,9 @@ public class UserManagement {
                     }
 
                     Servidor.dataOutputStream.writeUTF(userType); // Enviar tipo de usuario al cliente si la
-                                                                  // autenticación es
-                    // exitosa
+                    // autenticación es exitosa
                     Servidor.dataOutputStream.flush();
+                    connection.close();
                     break;
                 }
             } catch (IOException | SQLException e) {

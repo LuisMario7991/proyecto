@@ -1,4 +1,3 @@
-import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -35,7 +34,7 @@ public class DHKeyExchange {
             this.privateKey = keyPair.getPrivate();
         }
 
-        public void exchangeKeys(Socket socket) throws Exception {
+        public void exchangeKeys() throws Exception {
             System.out.println("Compartiendo parámetros Diffie-Hellman");
 
             // Enviar parámetros Diffie-Hellman a Alice
