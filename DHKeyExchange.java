@@ -79,8 +79,8 @@ public class DHKeyExchange {
 
             // Guarda el hash en un archivo TXT
             String fileName = "hasht.txt";
-            // Files.write(Paths.get(fileName), first16Bytes, StandardOpenOption.CREATE);
-            Files.writeString(Paths.get(fileName), bytesToHex(first16Bytes), StandardOpenOption.CREATE);
+            Files.write(Paths.get(fileName), first16Bytes, StandardOpenOption.CREATE);
+            // Files.writeString(Paths.get(fileName), bytesToHex(first16Bytes), StandardOpenOption.CREATE);
 
             System.out.println("Intecambio de llaves DH terminado");
             // ois.close();
