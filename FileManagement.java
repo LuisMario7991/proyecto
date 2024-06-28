@@ -1,9 +1,12 @@
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.PublicKey;
 
 public class FileManagement {
 
@@ -21,7 +24,7 @@ public class FileManagement {
         blobUploader.uploadEncryptedBlob(selectedFile);
         System.out.println("Subiendo archivo...");
     }
-    
+
     protected static void compartirArchivo(Socket clientSocket) {
         // Lógica para compartir archivo
         System.out.println("Compartiendo archivo...");
@@ -32,27 +35,34 @@ public class FileManagement {
     }
 
     protected static void validarArchivo(Socket clientSocket) {
-        System.out.println("Validando archivo...");
-        // Aplicar hash SHA-256 al archivo 'm.txt'
-        // byte[] fileHash = hashFile("received_m.txt");
-        // protectedKey protectedKey = getprotectedKeyFromFile("receivedprotectedKey.pem");
+        try {
+            System.out.println("Validando archivo");
+            
+            DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
 
-        // byte[] decryptedHash = decryptWithprotectedKey("received_encrypted_hash.bin",
-        // protectedKey);
+            // Aplicar hash SHA-256 al archivo 'm.txt'
+            byte[] fileHash;
+            fileHash = Utilidades.hashFile("recibido_m.txt");
+            
+            PublicKey publicKey = Utilidades.getPublicKeyFromFile("recibido_PublicKey.pem");
 
-        // Aplicar hash SHA-256 al resultado del descifrado
-        // byte[] decryptedHashFileHash = hashBytes(decryptedHash);
+            byte[] decryptedHash = Utilidades.decryptWithPublicKey("recibido_encrypted_hash.bin",
+                    publicKey);
 
-        // Comparar los hashes
-        // boolean isMatch = MessageDigest.isEqual(fileHash, decryptedHashFileHash);
-        // System.out.println("Hash comparison result: " + (isMatch ? "MATCH" : "DO NOT
-        // MATCH"));;
+            // Comparar los hashes
+            boolean isMatch = MessageDigest.isEqual(fileHash, decryptedHash);
+            System.out.println("Hash comparison result: " + (isMatch ? "MATCH" : "DO NOT MATCH"));
+
+            dataOutputStream.writeBoolean(isMatch);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     protected static void recibirArchivo(Socket clientSocket) {
-        try {  
+        try {
             DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
-            
+
             String fileName = dataInputStream.readUTF();
             long fileSize = dataInputStream.readLong();
             String saveFilePath = "recibido_" + fileName;
@@ -115,12 +125,12 @@ public class FileManagement {
                     System.out.println("Archivo recibido correctamente y guardado como " + saveFilePath);
                 } else {
                     System.out.println("Error: El tamaño del archivo recibido (" + totalBytesRead
-                    + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
+                            + " bytes) no coincide con el tamaño esperado (" + fileSize + " bytes).");
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    
+
 }
