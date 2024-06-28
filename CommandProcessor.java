@@ -6,13 +6,13 @@ public class CommandProcessor {
 
     public static void processCommand(Socket clientSocket, String command) throws IOException {
         switch (command) {
-            case "subirArchivo":
+            case "subeArchivo":
                 FileManagement.subirArchivo(clientSocket);
                 break;
-            case "compartirArchivo":
+            case "comparteArchivo":
                 FileManagement.compartirArchivo(clientSocket);
                 break;
-            case "validarArchivo":
+            case "validaArchivo":
                 FileManagement.validarArchivo(clientSocket);
                 break;
             case "agregaUsuario":

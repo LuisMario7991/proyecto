@@ -59,7 +59,7 @@ public class DHKeyExchange {
 
             // Recibir clave pública de Alice
             PublicKey alicePublicKey = (PublicKey) objectInputStream.readObject();
-            if (!validatePublicKey(alicePublicKey)) {
+            if (!Utilidades.validatePublicKey(alicePublicKey)) {
                 throw new IllegalArgumentException("Clave pública recibida es inválida");
             }
             System.out.println("Clave pública de Alice recibida y validada.");
@@ -74,29 +74,12 @@ public class DHKeyExchange {
             // Calcular hash SHA-256 de la clave compartida
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             byte[] sharedSecretHash = sha256.digest(sharedSecret);
-            System.out.println("Clave compartida hash (Bob): " + bytesToHex(sharedSecretHash));
+            System.out.println("Clave compartida hash (Bob): " + Utilidades.bytesToHex(sharedSecretHash));
 
             // Guarda el hash en un archivo TXT
             String fileName = "hasht.txt";
             Files.write(Paths.get(fileName), first16Bytes, StandardOpenOption.CREATE);
             // Files.writeString(Paths.get(fileName), bytesToHex(first16Bytes), StandardOpenOption.CREATE);
-        }
-
-        private static String bytesToHex(byte[] bytes) {
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : bytes) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1)
-                    hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        }
-
-        private boolean validatePublicKey(PublicKey key) {
-            // Implementación de ejemplo: validar la especificación de la clave y cualquier
-            // otra propiedad necesaria
-            return key.getAlgorithm().equals("DH") && key.getEncoded().length > 0;
         }
     }
 }
