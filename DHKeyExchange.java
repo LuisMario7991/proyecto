@@ -44,16 +44,16 @@ public class DHKeyExchange {
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
 
             // Enviar parámetros Diffie-Hellman a Alice
-            objectOutputStream.writeObject(dhSpec.getP());
+            objectOutputStream.writeObject(this.dhSpec.getP());
             objectOutputStream.flush();
-            objectOutputStream.writeObject(dhSpec.getG());
+            objectOutputStream.writeObject(this.dhSpec.getG());
             objectOutputStream.flush();
-            objectOutputStream.writeInt(dhSpec.getL());
+            objectOutputStream.writeInt(this.dhSpec.getL());
             objectOutputStream.flush();
             System.out.println("Parámetros Diffie-Hellman enviados a Alice.");
 
             // Enviar clave pública a Alice
-            objectOutputStream.writeObject(publicKey);
+            objectOutputStream.writeObject(this.publicKey);
             objectOutputStream.flush();
             System.out.println("Clave pública de Bob enviada a Alice.");
 
@@ -66,7 +66,7 @@ public class DHKeyExchange {
 
             // Generar la clave compartida
             KeyAgreement keyAgree = KeyAgreement.getInstance("DH");
-            keyAgree.init(privateKey);
+            keyAgree.init(this.privateKey);
             keyAgree.doPhase(alicePublicKey, true);
             byte[] sharedSecret = keyAgree.generateSecret();
             
