@@ -2,6 +2,7 @@ import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -26,12 +27,46 @@ public class FileManagement {
     }
 
     protected static void compartirArchivo(Socket clientSocket) {
-        // Lógica para compartir archivo
-        System.out.println("Compartiendo archivo...");
-        // Aquí se debería implementar la lógica para enviar el archivo al cliente
-        // mediante sockets
-        // Ejemplo básico:
-        // enviarArchivoAlCliente();
+        try {
+            // Lógica para compartir archivo
+            System.out.println("Compartiendo archivo...");
+
+            DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+
+            File file = new File("receta.txt");
+            long fileSize = file.length();
+            String fileName = file.getName();
+
+            System.out.println("Enviando archivo: " + fileName + "de tamaño: " + fileSize + " bytes");
+
+            // Enviar el nombre del archivo y su tamaño
+            dataOutputStream.writeUTF(fileName);
+            dataOutputStream.writeLong(fileSize);
+            dataOutputStream.flush();
+
+            FileInputStream fileInputStream = new FileInputStream("receta.txt");
+
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            long totalBytesRead = 0;
+
+            while (totalBytesRead < fileSize && (bytesRead = fileInputStream.read(buffer)) != -1) {
+                try {
+                    dataOutputStream.write(buffer, 0, bytesRead);
+                    dataOutputStream.flush();
+                    totalBytesRead += bytesRead;
+
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            fileInputStream.close();
+
+            System.out.println("Archivo enviado al servidor");
+        } catch (Exception e) {
+            System.err.println("No se pudo enviar el archivo al cliente: " + e.getMessage());
+        }
     }
 
     protected static void validarArchivo(Socket clientSocket) {

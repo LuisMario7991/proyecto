@@ -22,6 +22,8 @@ public class CommandProcessor {
                 UserManagement.eliminarUsuario(clientSocket);
                 break;
             case "recibeArchivo":
+                FileManagement.compartirArchivo(clientSocket);
+            case "enviaArchivo":
                 FileManagement.recibirArchivo(clientSocket);
                 break;
             case "terminaConexion":
