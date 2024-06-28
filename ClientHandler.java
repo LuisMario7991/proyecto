@@ -4,6 +4,7 @@ import java.net.Socket;
 
 class ClientHandler implements Runnable {
     Socket clientSocket;
+    byte[] key;
     
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -16,7 +17,7 @@ class ClientHandler implements Runnable {
 
             DHKeyExchange.ServerDH dhKeyExchange;
             dhKeyExchange = new DHKeyExchange.ServerDH();
-            dhKeyExchange.exchangeKeys(this.clientSocket);
+            this.key = dhKeyExchange.exchangeKeys(this.clientSocket);
 
             UserManagement.authenticateUser(this.clientSocket);
 

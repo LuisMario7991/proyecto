@@ -37,7 +37,7 @@ public class DHKeyExchange {
             this.privateKey = keyPair.getPrivate();
         }
 
-        public void exchangeKeys(Socket clientSocket) throws Exception {
+        public byte[] exchangeKeys(Socket clientSocket) throws Exception {
             System.out.println("Compartiendo parámetros Diffie-Hellman");
 
             ObjectInputStream objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
@@ -80,6 +80,8 @@ public class DHKeyExchange {
             String fileName = "hasht.txt";
             Files.write(Paths.get(fileName), first16Bytes, StandardOpenOption.CREATE);
             // Files.writeString(Paths.get(fileName), bytesToHex(first16Bytes), StandardOpenOption.CREATE);
+
+            return first16Bytes;
         }
     }
 }
