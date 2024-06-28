@@ -69,11 +69,11 @@ public class DHKeyExchange {
             keyAgree.init(privateKey);
             keyAgree.doPhase(alicePublicKey, true);
             byte[] sharedSecret = keyAgree.generateSecret();
-            byte[] first16Bytes = Arrays.copyOf(sharedSecret, 16);
-
+            
             // Calcular hash SHA-256 de la clave compartida
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             byte[] sharedSecretHash = sha256.digest(sharedSecret);
+            byte[] first16Bytes = Arrays.copyOf(sharedSecretHash, 16);
             System.out.println("Clave compartida hash (Bob): " + Utilidades.bytesToHex(sharedSecretHash));
 
             // Guarda el hash en un archivo TXT
