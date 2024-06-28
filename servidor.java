@@ -9,10 +9,7 @@ import java.security.MessageDigest;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import org.mindrot.jbcrypt.BCrypt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import javax.crypto.Cipher;
-import javax.swing.JFileChooser;
 
 public class servidor {
 
@@ -52,11 +49,10 @@ public class servidor {
 
     private static void compartirArchivo() {
         // Lógica para compartir archivo
-        System.out.println("Compartiendo archivo...");
-        // Aquí se debería implementar la lógica para enviar el archivo al cliente
-        // mediante sockets
-        // Ejemplo básico:
-        // enviarArchivoAlCliente();
+        AzureBlobManager.launch(AzureBlobManager.class);
+        String localFilePath = "downloaded_receta";
+        enviarArchivoPorSocket(localFilePath);
+        
     }
 
     private static void validarArchivo() {
@@ -230,6 +226,36 @@ public class servidor {
         }
     }
 
+    private static void enviarArchivoPorSocket(String filePath) {
+        try {
+            File file = new File(filePath);
+            byte[] fileBytes = new byte[(int) file.length()];
+            FileInputStream fileInputStream = new FileInputStream(file);
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+            bufferedInputStream.read(fileBytes, 0, fileBytes.length);
+
+            ServerSocket serverSocket = new ServerSocket(12345); // Puerto del servidor
+            System.out.println("Esperando cliente...");
+
+            Socket socket = serverSocket.accept();
+            System.out.println("Cliente conectado: " + socket);
+
+            OutputStream outputStream = socket.getOutputStream();
+            outputStream.write(fileBytes, 0, fileBytes.length);
+            outputStream.flush();
+
+            System.out.println("Archivo enviado al cliente.");
+
+            bufferedInputStream.close();
+            outputStream.close();
+            socket.close();
+            serverSocket.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static byte[] hashBytes(byte[] data) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         return digest.digest(data);
@@ -255,6 +281,10 @@ public class servidor {
         byte[] encryptedData = Files.readAllBytes(Paths.get(filePath));
         return cipher.doFinal(encryptedData);
     }
+
+       
+
+       
 
     private static void cerrarConexion(Socket socketClient) {
         try {
