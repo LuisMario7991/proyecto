@@ -3,12 +3,11 @@ import javax.crypto.*;
 import javax.crypto.spec.*;
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.nio.file.Path;
-
-import java.io.InputStream;
 
 public class BlobUploader {
     private String connectStr;
@@ -20,7 +19,8 @@ public class BlobUploader {
     public byte[] getBlob(String resource) {
         try {
             String sasBlobUrl = "https://recetaschef.blob.core.windows.net/recetas-chef/" + resource + "?sp=racwd&st=2024-07-01T01:20:59Z&se=2024-07-03T09:20:59Z&sv=2022-11-02&sr=b&sig=ZcAzk5xyMIoPbNZhtcYprOoQXcIeWwVfjqDmaKrDzBw%3D";
-            URL url = new URL(sasBlobUrl);
+            URI uri = new URI(sasBlobUrl);
+            URL url = uri.toURL();
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
 
