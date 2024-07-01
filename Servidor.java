@@ -2,53 +2,104 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import javafx.stage.Stage;
+
 public class Servidor {
 
     private static ServerSocket serverSocket;
+    protected static Socket clientSocket;
 
-    // DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
-    // DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
-    // ObjectInputStream objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
-    // ObjectOutputStream objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+    private static Commands command = new Commands();
+
+    protected static DataInputStream dataInputStream;
+    protected static DataOutputStream dataOutputStream;
+    protected static ObjectInputStream objectInputStream;
+    protected static ObjectOutputStream objectOutputStream;
 
     protected static void startServer() {
         final int PORT = 12345;
         try {
             serverSocket = new ServerSocket(PORT);
+
             System.out.println("Servidor listo\nBob está escuchando en el puerto " + PORT);
         } catch (IOException e) {
             System.err.println("Error al iniciar el servidor: " + e.getMessage());
         }
     }
 
-    protected static void waitForClient() {
-        System.out.println("Esperando nuevo cliente");
+    protected static void waitForClient() {      
         try {
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Cliente conectado: " + clientSocket.getInetAddress());
+            DHKeyExchange.ServerDH dhKeyExchange;
+            dhKeyExchange = new DHKeyExchange.ServerDH();
 
-                // Crear un nuevo hilo para manejar la conexión con el cliente
-                new Thread(new ClientHandler(clientSocket)).start();
-            }
+            clientSocket = serverSocket.accept();
+            System.out.println("Cliente conectado: " + clientSocket.getInetAddress());
+
+            objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+            objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
+            dataInputStream = new DataInputStream(clientSocket.getInputStream());
+            dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+            
+            dhKeyExchange.exchangeKeys();
+            // new Thread(new ConnectionHandler()).start();
         } catch (IOException e) {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e1) {
                 System.err.println("Error en la espera de cliente nuevo: " + e.getMessage());
             }
+        } catch (Exception e) {
+            System.err.println("Error en el intercambio de llaves: " + e.getMessage());
         }
     }
 
-    public static void cerrarConexion(Socket clientSocket) {
+    protected static String login(String email, String password) {
         try {
-            if (!clientSocket.isClosed() || clientSocket != null) {
-                clientSocket.close();
+            System.out.println("Validando credenciales");
+            
+            String userType = UserManagement.authenticateUser(email, password);
+
+            if (userType.equals("INVALID") || userType.equals("NOT_FOUND")) {
+                System.out.println("Error de autenticación: " + userType);
+            } else {
+                System.out.println("Bienvenido/a");
             }
 
-            System.out.println("Conexión cerrada correctamente.");
+            return userType;
+        } catch (Exception e) {
+            System.err.println("Hubo un problema con la lectura de la respuesta: " + e);
+            return null;
+        }
+    }
 
-            waitForClient();
+    protected static void displayUserInterface(String userType, Stage primaryStage) {
+        if (userType.equals("administrador")) {
+            AdminInterface.showAdminInterface(primaryStage);
+        }
+    }
+
+    public static void cerrarConexion() {
+        try {
+            dataOutputStream.writeUTF(command.getFinishConnection());
+            dataOutputStream.flush();
+            dataOutputStream.flush();
+
+            if (objectInputStream != null)
+                objectInputStream.close();
+
+            if (objectOutputStream != null)
+                objectOutputStream.close();
+
+            if (dataInputStream != null)
+                dataInputStream.close();
+
+            if (dataOutputStream != null)
+                dataOutputStream.close();
+
+            if (clientSocket != null && !clientSocket.isClosed())
+                clientSocket.close();
+
+            System.out.println("Conexión cerrada correctamente.");
         } catch (IOException e) {
             System.err.println("Error al cerrar la conexión: " + e.getMessage());
         }
