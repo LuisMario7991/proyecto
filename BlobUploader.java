@@ -2,24 +2,62 @@ import com.azure.storage.blob.*;
 import javax.crypto.*;
 import javax.crypto.spec.*;
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.nio.file.Path;
 
+import java.io.InputStream;
+
 public class BlobUploader {
     private String connectStr;
     private String containerName;
-   
 
-    public BlobUploader(String connectStr, String containerName) {
-        this.connectStr = connectStr;
-        this.containerName = containerName;
+    public BlobUploader() {
+    }
+
+    public byte[] getBlob(String resource) {
+        try {
+            String sasBlobUrl = "https://recetaschef.blob.core.windows.net/recetas-chef/" + resource + "?sp=racwd&st=2024-07-01T01:20:59Z&se=2024-07-03T09:20:59Z&sv=2022-11-02&sr=b&sig=ZcAzk5xyMIoPbNZhtcYprOoQXcIeWwVfjqDmaKrDzBw%3D";
+            URL url = new URL(sasBlobUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+
+            int responseCode = connection.getResponseCode();
+
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                System.out.println("Error al obtener el blob. Código de respuesta: " + responseCode);
+                return null;
+            }
+
+            InputStream inputStream = connection.getInputStream();
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            byte[] blobBytes = outputStream.toByteArray();
+            System.out.println("Longitud del blob: " + blobBytes.length + " bytes");
+
+            outputStream.close();
+            inputStream.close();
+
+            connection.disconnect();
+
+            return blobBytes;
+        } catch (Exception e) {
+            System.err.println("Error al obtener el blob: " + e.getMessage());
+            return null;
+        }
     }
 
     public void uploadEncryptedBlob(File file) {
         try {
             // Generar una clave y un IV para AES-GCM
-           
+
             SecretKey secretKey = readAESKeyFromFile("hasht.txt");
             byte[] iv = generateIV();
             GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
@@ -33,20 +71,15 @@ public class BlobUploader {
             // Cifrar el archivo
             byte[] encryptedBytes = cipher.doFinal(fileBytes);
             byte[] combined = new byte[iv.length + encryptedBytes.length];
-            
+
             System.arraycopy(iv, 0, combined, 0, iv.length);
             System.arraycopy(encryptedBytes, 0, combined, iv.length, encryptedBytes.length);
-            
-            BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
-            .connectionString(connectStr)
-            .buildClient();
+            BlobServiceClient blobServiceClient = new BlobServiceClientBuilder().connectionString(connectStr)
+                    .buildClient();
 
             BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
             BlobClient blobClient = containerClient.getBlobClient(file.getName() + ".encrypted");
             blobClient.upload(new ByteArrayInputStream(combined), combined.length, true);
-
-
-            
 
             System.out.println("Se han subido de forma correcta los blobs!");
         } catch (Exception e) {
