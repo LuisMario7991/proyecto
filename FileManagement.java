@@ -2,7 +2,6 @@ import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -14,55 +13,42 @@ public class FileManagement {
     protected static void subirArchivo(Socket clientSocket) {
         System.out.println("Subiendo archivo...");
 
-        String connectStr = "https://criptografia.blob.core.windows.net/recetas?sp=racwdli&st=2024-06-26T05:33:45Z&se=2024-06-28T13:33:45Z&sv=2022-11-02&sr=c&sig=uPPamXwmkNlP69aTGs0bP8BFrCo39o5X3Smed7gazVE%3D";
-        String containerName = "recetas";
-
         recibirArchivo(clientSocket, "uploadFile");
 
         File selectedFile = new File("uploadFile");
 
-        BlobUploader blobUploader = new BlobUploader(connectStr, containerName);
+        BlobUploader blobUploader = new BlobUploader();
+        // blobUploader.getBlob();
+        // System.out.println("Conexión comprobada...");
         blobUploader.uploadEncryptedBlob(selectedFile);
         System.out.println("Subiendo archivo...");
     }
 
     protected static void compartirArchivo(Socket clientSocket) {
         try {
+
+            BlobUploader blobUploader = new BlobUploader();
+
             // Lógica para compartir archivo
             System.out.println("Compartiendo archivo...");
 
             DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+            DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
 
-            File file = new File("receta.txt");
-            long fileSize = file.length();
-            String fileName = file.getName();
+            String blobName = dataInputStream.readUTF();
 
-            System.out.println("Enviando archivo: " + fileName + "de tamaño: " + fileSize + " bytes");
+            byte[] azureFile = blobUploader.getBlob(blobName);
+
+            System.out.println("Enviando archivo: " + blobName + "de tamaño: " + azureFile.length + " bytes");
 
             // Enviar el nombre del archivo y su tamaño
-            dataOutputStream.writeUTF(fileName);
-            dataOutputStream.writeLong(fileSize);
+            dataOutputStream.writeUTF(blobName);
+            dataOutputStream.writeLong(azureFile.length);
             dataOutputStream.flush();
-
-            FileInputStream fileInputStream = new FileInputStream("receta.txt");
-
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            long totalBytesRead = 0;
-
-            while (totalBytesRead < fileSize && (bytesRead = fileInputStream.read(buffer)) != -1) {
-                try {
-                    dataOutputStream.write(buffer, 0, bytesRead);
-                    dataOutputStream.flush();
-                    totalBytesRead += bytesRead;
-
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            fileInputStream.close();
-
+            
+            dataOutputStream.write(azureFile);
+            dataOutputStream.flush();
+            
             System.out.println("Archivo enviado al servidor");
         } catch (Exception e) {
             System.err.println("No se pudo enviar el archivo al cliente: " + e.getMessage());
@@ -72,13 +58,13 @@ public class FileManagement {
     protected static void validarArchivo(Socket clientSocket) {
         try {
             System.out.println("Validando archivo");
-            
+
             DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
 
             // Aplicar hash SHA-256 al archivo 'm.txt'
             byte[] fileHash;
             fileHash = Utilidades.hashFile("recibido_m.txt");
-            
+
             PublicKey publicKey = Utilidades.getPublicKeyFromFile("recibido_PublicKey.pem");
 
             byte[] decryptedHash = Utilidades.decryptWithPublicKey("recibido_encrypted_hash.bin",
