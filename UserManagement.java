@@ -1,7 +1,3 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.net.Socket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -20,17 +16,9 @@ public class UserManagement {
         return DriverManager.getConnection(url, "chefadmin", "ch3f4dm1n!");
     }
 
-    protected static void agregarUsuario(Socket clientSocket) {
+    protected static void agregarUsuario(String email, String password, String userType) {
         try {
             System.out.println("Agregando usuario...");
-            
-            DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
-            DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
-
-            // Lee los datos del nuevo usuario enviados por el cliente
-            String email = dataInputStream.readUTF();
-            String password = dataInputStream.readUTF();
-            String userType = dataInputStream.readUTF();
 
             // Hashea la contraseña
             String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
@@ -44,26 +32,21 @@ public class UserManagement {
                 stmt.executeUpdate();
 
                 System.out.println("Usuario agregado exitosamente.");
-                dataOutputStream.writeUTF("Usuario agregado exitosamente");
+                Servidor.dataOutputStream.writeUTF("Usuario agregado exitosamente");
 
                 connection.close();
             } catch (SQLException ex) {
                 System.err.println("Error con la conexión de la base de datos: " + ex.getMessage());
-                dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
+                Servidor.dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
             }
         } catch (Exception e) {
             System.err.println("Error con la recepción de parámetros del usuario: " + e.getMessage());
         }
     }
 
-    protected static void eliminarUsuario(Socket clientSocket) {
+    protected static void eliminarUsuario(String email) {
         try {
             System.out.println("Eliminando usuario...");
-
-            DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
-            DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
-
-            String email = dataInputStream.readUTF();
 
             try (Connection connection = connect();
                     PreparedStatement stmt = connection.prepareStatement("DELETE FROM Usuarios WHERE Correo = ?")) {
@@ -71,61 +54,46 @@ public class UserManagement {
                 stmt.executeUpdate();
 
                 System.out.println("Usuario eliminado exitosamente.");
-                dataOutputStream.writeUTF("Usuario eliminado exitosamente");
+                Servidor.dataOutputStream.writeUTF("Usuario eliminado exitosamente");
 
                 connection.close();
             } catch (SQLException ex) {
                 System.err.println("Error con la conexión de la base de datos: " + ex.getMessage());
-                dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
+                Servidor.dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
             }
         } catch (Exception e) {
             System.err.println("Error con la recepción de parámetros del usuario: " + e.getMessage());
         }
     }
 
-    protected static void authenticateUser(Socket clientSocket) {
-        while (true) {
-            try {
-                
-                DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
-                DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
-                
-                String userEmail = dataInputStream.readUTF();
-                String userPassword = dataInputStream.readUTF();
-                
-                System.out.println("Autenticando usuario");
-                try (Connection connection = connect();
-                        PreparedStatement stmt = connection
-                                .prepareStatement(
-                                        "SELECT Contrasena, TipoUsuario FROM Usuarios WHERE Correo = ?")) {
-                    stmt.setString(1, userEmail);
-                    ResultSet rs = stmt.executeQuery();
+    protected static String authenticateUser(String userEmail, String userPassword) {
+        try {
+            System.out.println("Autenticando usuario");
+            try (Connection connection = connect();
+                    PreparedStatement stmt = connection
+                            .prepareStatement(
+                                    "SELECT Contrasena, TipoUsuario FROM Usuarios WHERE Correo = ?")) {
+                stmt.setString(1, userEmail);
+                ResultSet rs = stmt.executeQuery();
 
-                    if (!rs.next()) {
-                        dataOutputStream.writeUTF("NOT_FOUND"); // Enviar mensaje si el usuario no se encuentra
-                        dataOutputStream.flush();
-                        continue;
-                    }
-
-                    String storedPassword = rs.getString("Contrasena");
-                    String userType = rs.getString("TipoUsuario");
-
-                    if (!BCrypt.checkpw(userPassword, storedPassword)) {
-                        dataOutputStream.writeUTF("INVALID"); // Enviar mensaje de error si la contraseña no
-                        // coincide
-                        dataOutputStream.flush();
-                        continue;
-                    }
-
-                    dataOutputStream.writeUTF(userType); // Enviar tipo de usuario al cliente si la
-                    // autenticación es exitosa
-                    dataOutputStream.flush();
-                    connection.close();
-                    break;
+                if (!rs.next()) {
+                    return "NOT_FOUND";
                 }
-            } catch (IOException | SQLException e) {
-                e.printStackTrace();
+
+                String storedPassword = rs.getString("Contrasena");
+                String userType = rs.getString("TipoUsuario");
+
+                if (!BCrypt.checkpw(userPassword, storedPassword)) {
+                    return "INVALID";
+                }
+
+                connection.close();
+
+                return userType;
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return "SQL_ERROR";
         }
     }
 }
