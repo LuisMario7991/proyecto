@@ -9,8 +9,6 @@ public class Servidor {
     private static ServerSocket serverSocket;
     protected static Socket clientSocket;
 
-    private static Commands command = new Commands();
-
     protected static DataInputStream dataInputStream;
     protected static DataOutputStream dataOutputStream;
     protected static ObjectInputStream objectInputStream;
@@ -80,10 +78,6 @@ public class Servidor {
 
     public static void cerrarConexion() {
         try {
-            dataOutputStream.writeUTF(command.getFinishConnection());
-            dataOutputStream.flush();
-            dataOutputStream.flush();
-
             if (objectInputStream != null)
                 objectInputStream.close();
 
