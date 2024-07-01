@@ -139,10 +139,8 @@ public class AdminInterface {
             
             System.out.println("Validando archivo en el serivdor");
 
-            Servidor.dataOutputStream.writeUTF(command.getValidateFiles());
-
             // Comparar los hashes
-            boolean isMatch = Servidor.dataInputStream.readBoolean();
+            boolean isMatch = FileManagement.validarArchivo();
             String validationText = (isMatch) ? "Validación exitosa:" : "Validación fallida:";
             String messageText = (isMatch) ? "El acuerdo fue verificado y cumple con los requisitos."
                     : "El acuerdo no coincide. Pida que firmen el acuerdo nuevamente.";

@@ -5,7 +5,8 @@ public class CommandProcessor {
     public static void processCommand(String command) throws IOException {
         switch (command) {
             case "recibeArchivo":
-                FileManagement.compartirArchivo();
+                System.out.println("Recibiendo archivo del colaborador...");
+                FileManagement.recibirArchivo();
             case "enviaArchivo":
                 FileManagement.recibirArchivo();
                 break;

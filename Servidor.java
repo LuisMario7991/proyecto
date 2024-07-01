@@ -41,7 +41,7 @@ public class Servidor {
             dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
             
             dhKeyExchange.exchangeKeys();
-            // new Thread(new ConnectionHandler()).start();
+            new Thread(new ConnectionHandler()).start();
         } catch (IOException e) {
             try {
                 Thread.sleep(1000);
