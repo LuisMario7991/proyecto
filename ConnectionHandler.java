@@ -6,7 +6,6 @@ class ConnectionHandler implements Runnable {
     @Override
     public void run() {
         try {
-            System.out.println("Manejo las conexiones");
             // El servidor ahora espera por comandos
             while (!Servidor.clientSocket.isClosed()) {
                 try {
