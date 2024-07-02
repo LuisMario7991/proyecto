@@ -1,11 +1,14 @@
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.PublicKey;
 
 public class FileManagement {
+
+    private static Commands command = new Commands();
 
     protected static void subirArchivo() {
         System.out.println("Subiendo archivo...");
@@ -70,6 +73,44 @@ public class FileManagement {
             e.printStackTrace();
         }
         return isMatch;
+    }
+
+    public static void enviarArchivo(String filePath) throws IOException {
+        Servidor.dataOutputStream.writeUTF(command.getUploadFile());
+        Servidor.dataOutputStream.flush();
+
+        File file = new File(filePath);
+        long fileSize = file.length();
+        String fileName = file.getName();
+
+        System.out.println("Enviando archivo: " + fileName + " de tamaño: " + fileSize + " bytes");
+
+        // Enviar el nombre del archivo y su tamaño
+        Servidor.dataOutputStream.writeUTF(fileName);
+        Servidor.dataOutputStream.flush();
+        Servidor.dataOutputStream.writeLong(fileSize);
+        Servidor.dataOutputStream.flush();
+
+        FileInputStream fileInputStream = new FileInputStream(filePath);
+
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        long totalBytesRead = 0;
+
+        while (totalBytesRead < fileSize && (bytesRead = fileInputStream.read(buffer)) != -1) {
+            try {
+                Servidor.dataOutputStream.write(buffer, 0, bytesRead);
+                Servidor.dataOutputStream.flush();
+                totalBytesRead += bytesRead;
+
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        fileInputStream.close();
+
+        System.out.println("Archivo enviado al servidor");
     }
 
     protected static void recibirArchivo() {

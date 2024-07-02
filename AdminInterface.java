@@ -86,52 +86,61 @@ public class AdminInterface {
     }
 
     private static void compartirArchivo() {
-        // Lógica para compartir archivo
-        try {
-            System.out.println("Compartiendo archivo...");
+        // Crear una ventana para ingresar datos del usuario
+        Stage stage = new Stage();
+        GridPane grid = new GridPane();
+        TextField fileField = new TextField();
+        Button sendButton = new Button("Agregar");
 
-            Servidor.dataOutputStream.writeUTF(command.getShareFile());
+        grid.add(new Label("Nombre del archivo:"), 0, 0);
+        grid.add(fileField, 1, 0);
+        grid.add(sendButton, 1, 1);
 
-            // Crear una ventana para ingresar datos del usuario
-            Stage stage = new Stage();
-            GridPane grid = new GridPane();
-            TextField fileField = new TextField();
-            Button sendButton = new Button("Agregar");
-
-            grid.add(new Label("Nombre del archivo:"), 0, 0);
-            grid.add(fileField, 1, 0);
-            grid.add(sendButton, 1, 1);
-
-            sendButton.setOnAction(e -> {
-                try {
-                    Servidor.dataOutputStream.writeUTF(fileField.getText());
-
-                    // Enviar el nombre del archivo y su tamaño
-                    String fileName = Servidor.dataInputStream.readUTF();
-                    long fileSize = Servidor.dataInputStream.readLong();
-
-                    byte[] fileData = new byte[(int) fileSize];
-                    Servidor.dataInputStream.readFully(fileData);
-
-                    // Guardar los bytes en un archivo local
-                    try (FileOutputStream fileOutputStream = new FileOutputStream(fileName)) {
-                        fileOutputStream.write(fileData);
-                        System.out.println("Archivo guardado: " + fileName + " (" + fileSize + " bytes)");
-                    }
-
-                    stage.close();
-                } catch (IOException e1) {
-                    e1.printStackTrace();
+        sendButton.setOnAction(e -> {
+            try {
+                String fileName = fileField.getText();
+                BlobUploader blob = new BlobUploader();
+                byte[] plainFile = blob.getBlob(fileName);
+                
+                File bufferFile = new File(fileName);
+                try (FileOutputStream fos = new FileOutputStream(bufferFile)) {
+                    fos.write(plainFile);
+                    fos.flush();
                 }
-            });
 
-            Scene scene = new Scene(grid);
-            stage.setScene(scene);
-            stage.setTitle("Validación de Acuerdo");
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+                File keyFile = new File("DHAESKEY.bin");
+                File encryptedFile = new File("Encrypted" + fileName);
+                AESGCMEncryptor.encryptFile(bufferFile, keyFile, encryptedFile);
+
+                System.out.println("Compartiendo archivo...");
+                Servidor.dataOutputStream.writeUTF(command.getShareFile());
+
+                FileManagement.enviarArchivo("Encrypted" + fileName);
+
+                stage.close();
+
+                // byte[] fileData = new byte[(int) fileSize];
+                // Servidor.dataInputStream.readFully(fileData);
+
+                // // Guardar los bytes en un archivo local
+                // try (FileOutputStream fileOutputStream = new FileOutputStream(fileName)) {
+                // fileOutputStream.write(fileData);
+                // System.out.println("Archivo guardado: " + fileName + " (" + fileSize + "
+                // bytes)");
+                // }
+            } catch (IOException e1) {
+                System.err.println("Error al escribir el archivo: " + e1.getMessage());
+                e1.printStackTrace();
+            } catch (Exception e1) {
+                System.err.println("Error al cifrar el archivo: " + e1.getMessage());
+                e1.printStackTrace();
+            }
+        });
+
+        Scene scene = new Scene(grid);
+        stage.setScene(scene);
+        stage.setTitle("Validación de Acuerdo");
+        stage.show();
     }
 
     private static void validarArchivo() {
