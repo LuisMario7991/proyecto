@@ -32,12 +32,9 @@ public class UserManagement {
                 stmt.executeUpdate();
 
                 System.out.println("Usuario agregado exitosamente.");
-                Servidor.dataOutputStream.writeUTF("Usuario agregado exitosamente");
-
                 connection.close();
             } catch (SQLException ex) {
                 System.err.println("Error con la conexión de la base de datos: " + ex.getMessage());
-                Servidor.dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
             }
         } catch (Exception e) {
             System.err.println("Error con la recepción de parámetros del usuario: " + e.getMessage());
@@ -54,12 +51,9 @@ public class UserManagement {
                 stmt.executeUpdate();
 
                 System.out.println("Usuario eliminado exitosamente.");
-                Servidor.dataOutputStream.writeUTF("Usuario eliminado exitosamente");
-
                 connection.close();
             } catch (SQLException ex) {
                 System.err.println("Error con la conexión de la base de datos: " + ex.getMessage());
-                Servidor.dataOutputStream.writeUTF("Error con la conexión de la base de datos: " + ex.getMessage());
             }
         } catch (Exception e) {
             System.err.println("Error con la recepción de parámetros del usuario: " + e.getMessage());

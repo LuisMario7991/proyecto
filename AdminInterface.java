@@ -136,7 +136,7 @@ public class AdminInterface {
 
     private static void validarArchivo() {
         try {
-            
+
             System.out.println("Validando archivo en el serivdor");
 
             // Comparar los hashes
@@ -192,28 +192,8 @@ public class AdminInterface {
         grid.add(addButton, 1, 3);
 
         addButton.setOnAction(e -> {
-            try {
-                // Envía los datos del nuevo usuario al servidor
-                Servidor.dataOutputStream.writeUTF(command.getAddUser());
-                Servidor.dataOutputStream.flush();
-
-                Servidor.dataOutputStream.writeUTF(emailField.getText());
-                Servidor.dataOutputStream.flush();
-
-                Servidor.dataOutputStream.writeUTF(passwordField.getText());
-                Servidor.dataOutputStream.flush();
-
-                Servidor.dataOutputStream.writeUTF(typeComboBox.getValue());
-                Servidor.dataOutputStream.flush();
-
-                // Espera una respuesta del servidor
-                String serverResponse = Servidor.dataInputStream.readUTF();
-                System.out.println("Respuesta del servidor: " + serverResponse);
-
-                stage.close(); // Cierra la ventana tras la respuesta
-            } catch (IOException ex) {
-                System.err.println("Error en el envío de parámetros al servidor: " + ex.getMessage());
-            }
+            UserManagement.agregarUsuario(emailField.getText(), passwordField.getText(), typeComboBox.getValue());
+            stage.close(); // Cierra la ventana tras la respuesta
         });
 
         Scene scene = new Scene(grid);
@@ -233,21 +213,8 @@ public class AdminInterface {
         grid.add(deleteButton, 1, 1);
 
         deleteButton.setOnAction(e -> {
-            try {
-                Servidor.dataOutputStream.writeUTF(command.getDeleteUser());
-                Servidor.dataOutputStream.flush();
-
-                Servidor.dataOutputStream.writeUTF(emailField.getText());
-                Servidor.dataOutputStream.flush();
-
-                // Espera una respuesta del servidor
-                String serverResponse = Servidor.dataInputStream.readUTF();
-                System.out.println("Respuesta del servidor: " + serverResponse);
-
-                stage.close(); // Cierra la ventana tras la respuesta
-            } catch (IOException ex) {
-                System.err.println("Error en el envío de parámetros al servidor: " + ex.getMessage());
-            }
+            UserManagement.eliminarUsuario(emailField.getText());
+            stage.close();
         }); // Cierra la ventana tras la respuesta
 
         Scene scene = new Scene(grid);
