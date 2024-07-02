@@ -90,7 +90,7 @@ public class AdminInterface {
         Stage stage = new Stage();
         GridPane grid = new GridPane();
         TextField fileField = new TextField();
-        Button sendButton = new Button("Agregar");
+        Button sendButton = new Button("Compartir");
 
         grid.add(new Label("Nombre del archivo:"), 0, 0);
         grid.add(fileField, 1, 0);
@@ -111,9 +111,6 @@ public class AdminInterface {
                 File keyFile = new File("DHAESKEY.bin");
                 File encryptedFile = new File("Encrypted" + fileName);
                 AESGCMEncryptor.encryptFile(bufferFile, keyFile, encryptedFile);
-
-                System.out.println("Compartiendo archivo...");
-                Servidor.dataOutputStream.writeUTF(command.getShareFile());
 
                 FileManagement.enviarArchivo("Encrypted" + fileName);
 
