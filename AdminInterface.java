@@ -116,6 +116,9 @@ public class AdminInterface {
 
                 stage.close();
 
+                bufferFile.delete();
+                encryptedFile.delete();
+
                 // byte[] fileData = new byte[(int) fileSize];
                 // Servidor.dataInputStream.readFully(fileData);
 
